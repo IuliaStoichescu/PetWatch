@@ -1,0 +1,59 @@
+import 'package:flutter/material.dart';
+import 'package:pet_watch/login_signin/auth_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pet_watch/home_page.dart';
+import 'package:pet_watch/onboarding_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // ✅ Ensure async code runs before UI
+  await Firebase.initializeApp(
+   options: DefaultFirebaseOptions.currentPlatform,
+  );
+  final prefs = await SharedPreferences.getInstance();
+  final bool seenOnboarding = prefs.getBool("seenOnboarding") ?? false; // ✅ Default to false
+
+  runApp(MyApp(seenOnboarding: seenOnboarding));
+}
+
+class MyApp extends StatelessWidget {
+  final bool seenOnboarding;
+
+  const MyApp({super.key, required this.seenOnboarding});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: seenOnboarding ? AuthPage() : OnboardingWrapper(),
+    );
+  }
+}
+
+class OnboardingWrapper extends StatefulWidget {
+  const OnboardingWrapper({super.key});
+
+  @override
+  _OnboardingWrapperState createState() => _OnboardingWrapperState();
+}
+
+class _OnboardingWrapperState extends State<OnboardingWrapper> {
+  Future<void> _markOnboardingSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool("seenOnboarding", true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OnboardingScreen(
+      onDone: () async {
+        await _markOnboardingSeen();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage()),
+        );
+      },
+    );
+  }
+}

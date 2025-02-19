@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "118660317591",
+    "project_id": "mypetwatchapplication",
+    "storage_bucket": "mypetwatchapplication.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:118660317591:android:dbbb008d3ddb80a0c144d2",
+        "android_client_info": {
+          "package_name": "com.example.myPetWatch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBr2HKapMxPqxobhD08ig0e9jPOWkEcgww"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
