@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:pet_watch/login_signin/myTextField.dart';
+import 'package:pet_watch/login_signin/my_button.dart';
+import 'package:pet_watch/login_signin/services/storage_service.dart';
+import 'package:provider/provider.dart';
 
 class AddPet extends StatefulWidget {
   const AddPet({super.key});
@@ -16,8 +19,24 @@ class _AddPetState extends State<AddPet> {
   String? selectedSex;
   String imageUrl = ""; 
 
+  void initState(){
+    super.initState();
+    fetchImages();
+  }
+
+  void savePetInfo(){
+
+  }
+
+  Future<void> fetchImages() async{
+    await Provider.of<StorageService>(context,listen: false).fetchImages();
+  }
+
   @override
   Widget build(BuildContext context) {
+    return Consumer<StorageService>(
+      builder: (context,storageService,child){
+        final List<String> imageUrls = storageService.imageURL;
     return Container(
          decoration: BoxDecoration(
             color: Color(0xFF6C4C57), 
@@ -36,7 +55,7 @@ class _AddPetState extends State<AddPet> {
                       SizedBox(width: 20,),
                       Column(
                         children: [
-                          Text("Create ",style: TextStyle(fontSize: 20,color: Colors.white),),
+                          Text("Let's create ",style: TextStyle(fontSize: 20,color: Colors.white),),
                           Text("your pet's profile!",style: TextStyle(fontSize: 20,color: Colors.white),),
                           Text("(Guide. Continue below ⬇️)",style: TextStyle(color: Colors.white))
                         ],
@@ -62,9 +81,9 @@ class _AddPetState extends State<AddPet> {
                   Text(" Now, you’re all set to track your pet’s location",style: TextStyle(color: Colors.white)),
                   Text(" in real-time",style: TextStyle(color: Colors.white)),
                   Image.asset("assets/on.png",width: 150,height: 150,),
-                  SizedBox(height: 50,),
+                  SizedBox(height: 30,),
                   Text("Pet Profile",style: TextStyle(color: Colors.white,fontSize: 30,decoration: TextDecoration.underline,decorationColor: const Color.fromARGB(255, 255, 255, 255),),),
-                  SizedBox(height: 50,),
+                  SizedBox(height: 30,),
                   Mytextfield(controller: nameController,hintText: "PetName",prefixIcon: Icon(Icons.pets,color: Colors.white,),obscureText: false,),
                   SizedBox(height: 20,),
                   SizedBox(
@@ -97,12 +116,93 @@ class _AddPetState extends State<AddPet> {
                       ),
                       dropdownColor: Colors.grey[700], 
                     ),
-                  )
+                  ),
+                  SizedBox(height: 30,),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 50.0),
+                    child: TextField(
+                        cursorColor: Color(0xFF73BDF3), 
+                        maxLines: 5, 
+                        style: TextStyle(color: Colors.white), 
+                        decoration: InputDecoration(
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color.fromARGB(201, 255, 255, 255)), 
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white), 
+                          ),
+                          fillColor: Color.fromARGB(91, 255, 253, 253), 
+                          filled: true, 
+                          hintText: "About my pet ❤️", 
+                          hintStyle: TextStyle(color: Colors.white), 
+                          focusColor: Colors.white, 
+                        ),
+                      ),
+                  ),
+
+                  SizedBox(height: 40,),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FloatingActionButton(onPressed: () => storageService.uploadImage(),
+                      backgroundColor: const Color.fromARGB(125, 255, 255, 255),
+                      child: const Icon(Icons.add,color: Color(0xFF6C4C57),),
+                      ),
+                      SizedBox(width: 20,),
+                      CircleAvatar(
+                        radius: 80, 
+                        backgroundColor: const Color.fromARGB(128, 255, 255, 255), 
+                        backgroundImage: imageUrls.isNotEmpty
+                            ? NetworkImage(imageUrls.last) 
+                            : null, 
+                        child: imageUrls.isEmpty
+                            ? Icon(Icons.image, size: 50, color: Color(0xFF6C4C57)) 
+                            : null, 
+                      ),
+                      SizedBox(width: 20,),
+                      FloatingActionButton(onPressed: () => storageService.deleteImages(imageUrl),
+                      backgroundColor:  const Color.fromARGB(130, 255, 255, 255),
+                      child: const Icon(Icons.remove,color: Color(0xFF6C4C57),),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20,),
+                  MyButtonForCreation(onTap: savePetInfo,text :"Create profile"),
                 ],
               ),
             ),
           ),
         ),
+    );
+    },
+      );
+  }
+}
+
+
+class MyButtonForCreation extends StatelessWidget {
+
+  final Function()? onTap;
+  final String text;
+  const MyButtonForCreation({super.key,required this.onTap,required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(10),
+        margin: EdgeInsets.symmetric(horizontal: 100,vertical: 10),
+        decoration: BoxDecoration(color:  Color.fromARGB(255, 255, 255, 255),
+        borderRadius: BorderRadius.circular(10),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(color: Color(0xFF6C4C57)),
+          ),
+        ),
+      ),
     );
   }
 }

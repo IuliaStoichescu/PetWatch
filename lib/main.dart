@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pet_watch/login_signin/auth_page.dart';
+import 'package:pet_watch/login_signin/services/storage_service.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pet_watch/home_page.dart';
 import 'package:pet_watch/onboarding_screen.dart';
@@ -14,7 +16,8 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final bool seenOnboarding = prefs.getBool("seenOnboarding") ?? false; // ✅ Default to false
 
-  runApp(MyApp(seenOnboarding: seenOnboarding));
+  runApp(ChangeNotifierProvider(create: (context)=> StorageService(),
+  child:MyApp(seenOnboarding: seenOnboarding) ,));//
 }
 
 class MyApp extends StatelessWidget {

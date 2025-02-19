@@ -22,6 +22,11 @@
 	</dict>
 </array>
 <!-- End of the Google Sign-in Section -->
+<!-- For image picker-->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Allow access to photo library</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Allow access to the camera</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

@@ -43,6 +43,9 @@ dependencies:
   cloud_firestore: ^5.6.3
   google_sign_in: ^6.2.2
   lottie: ^3.3.1
+  firebase_storage: ^12.4.3
+  provider: ^6.1.2
+  image_picker: ^1.1.2
 
 flutter_icons:
   android: true
