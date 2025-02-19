@@ -1,10 +1,17 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:pet_watch/helpers/square_fab.dart';
+import 'package:pet_watch/pet_add/add_pet.dart';
 
-class HomePage extends StatelessWidget {
-  HomePage({super.key});
-  final user = FirebaseAuth.instance.currentUser!;
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final User user = FirebaseAuth.instance.currentUser!;
+  List<String> items = []; 
 
   void logUserout() {
     FirebaseAuth.instance.signOut();
@@ -18,25 +25,29 @@ class HomePage extends StatelessWidget {
     return firstName;
   }
 
+  void addItem() {
+    setState(() {
+      items.add("Pet Profile ${items.length + 1}"); 
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      backgroundColor: Colors.white,
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(80),
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [const Color.fromARGB(255, 108, 76, 87), const Color.fromARGB(255, 108, 76, 87), const Color.fromARGB(255, 108, 76, 87)], // Gradient galben → portocaliu → roșu
+              colors: [Color(0xFF6C4C57), Color(0xFF6C4C57), Color(0xFF6C4C57)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular(30), // Rotunjire doar jos
-            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3), // Umbra dedesubt
+                color: Colors.black.withOpacity(0.3),
                 blurRadius: 10,
                 spreadRadius: 2,
                 offset: Offset(0, 4),
@@ -44,16 +55,19 @@ class HomePage extends StatelessWidget {
             ],
           ),
           child: AppBar(
-            backgroundColor: Colors.transparent, // Pentru a păstra gradientul
-            elevation: 0, // Fără umbră suplimentară
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             title: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Icon(Icons.person,size: 25,color: Colors.white,),
-            SizedBox(width: 15,),
-            Text("Glad to have you , ${getUserFirstName(user)}",style: TextStyle(color: Colors.white),),
-          ],
-        ),
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Icon(Icons.person, size: 25, color: Colors.white),
+                SizedBox(width: 15),
+                Text(
+                  "Glad to have you, ${getUserFirstName(user)}",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
             centerTitle: true,
             actions: [
               IconButton(
@@ -65,37 +79,55 @@ class HomePage extends StatelessWidget {
         ),
       ),
       body: Stack(
-      children: [
-        ListView(
-          padding: EdgeInsets.all(16),
-          children: [
-            Text("Home Screen", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            SizedBox(height: 400), 
-            Text("More content goes here..."),
-          ],
-        ),
+        children: [
+          items.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "No pet profiles added yet!",
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                      Lottie.asset("assets/missing_animation.json"),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: EdgeInsets.all(16),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    return Card(
+                      elevation: 3,
+                      margin: EdgeInsets.symmetric(vertical: 8),
+                      child: ListTile(
+                        title: Text(items[index]),
+                      ),
+                    );
+                  },
+                ),
 
-        Positioned(
-          bottom: 40, 
-          left: MediaQuery.of(context).size.width / 2 - 30, 
-          child: SquareFab(
-            onPressed: () {
-              print("Add pet profile!");
-            },
+          Positioned(
+            bottom: 40,
+            left: MediaQuery.of(context).size.width / 2 - 30,
+            child: SquareFab(
+              onPressed: () {
+                 showAddPetPopup(context);
+              },//addItem, 
+            ),
           ),
-        ),
-      ],
-    ),
+        ],
+      ),
     );
   }
 }
 
 String getFirstNameFromEmail(String email) {
   if (email.contains('@')) {
-    String username = email.split('@')[0]; // Extrage partea înainte de @
-    return username.split('.')[0].capitalize(); // Extrage prenumele
+    String username = email.split('@')[0];
+    return username.split('.')[0].capitalize();
   }
-  return email; // Fallback dacă emailul este invalid
+  return email;
 }
 
 extension StringExtension on String {
@@ -103,3 +135,19 @@ extension StringExtension on String {
     return "${this[0].toUpperCase()}${substring(1)}";
   }
 }
+
+void showAddPetPopup(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: true, 
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: AddPet(), 
+      );
+    },
+  );
+}
+

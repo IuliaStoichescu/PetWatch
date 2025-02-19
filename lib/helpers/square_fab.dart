@@ -27,13 +27,13 @@ class _SquareFabState extends State<SquareFab> {
           boxShadow: _isHovered
               ? [
                   BoxShadow(
-                    color: Colors.black26,
+                    color: const Color.fromARGB(32, 0, 0, 0),
                     blurRadius: 8,
-                    spreadRadius: 2,
+                    spreadRadius: 5,
                     offset: Offset(0, 4),
                   ),
                 ]
-              : [],
+              : []
         ),
         child: FloatingActionButton(
           onPressed: widget.onPressed,
