@@ -1157,7 +1157,7 @@ PODS:
   - BoringSSL-GRPC/Implementation (0.0.36):
     - BoringSSL-GRPC/Interface (= 0.0.36)
   - BoringSSL-GRPC/Interface (0.0.36)
-  - cloud_firestore (5.6.3):
+  - cloud_firestore (5.6.4):
     - Firebase/Firestore (= 11.8.0)
     - firebase_core
     - Flutter
@@ -1431,7 +1431,7 @@ SPEC CHECKSUMS:
   abseil: d121da9ef7e2ff4cab7666e76c5a3e0915ae08c3
   AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
   BoringSSL-GRPC: ca6a8e5d04812fce8ffd6437810c2d46f925eaeb
-  cloud_firestore: c86f040eed68db94fae601cc3311085e24f6c15d
+  cloud_firestore: 7a6d7b8111fe44d13a0e49783daad5219ce798ff
   Firebase: d80354ed7f6df5f9aca55e9eb47cc4b634735eaf
   firebase_auth: 342560b5af9939733fa3f9d5be7ee7e4456c9e71
   firebase_core: 6cbed78b4f298ed103a9fd034e6dbc846320480f

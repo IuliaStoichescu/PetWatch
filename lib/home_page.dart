@@ -139,15 +139,26 @@ extension StringExtension on String {
 void showAddPetPopup(BuildContext context) {
   showDialog(
     context: context,
-    barrierDismissible: true, 
+    barrierDismissible: true,
     builder: (BuildContext context) {
       return Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        child: AddPet(), 
+        child: AddPet(),
       );
     },
+  ).then((_) {
+    showSnackbar(context, "Pet profile saved successfully!", Colors.green);
+  });
+}
+void showSnackbar(BuildContext context, String message, Color color) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message, style: TextStyle(color: Colors.white)),
+      backgroundColor: color,
+      duration: Duration(seconds: 2),
+    ),
   );
 }
 

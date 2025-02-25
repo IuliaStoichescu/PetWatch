@@ -1,7 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:pet_watch/login_signin/myTextField.dart';
-import 'package:pet_watch/login_signin/my_button.dart';
 import 'package:pet_watch/login_signin/services/storage_service.dart';
 import 'package:provider/provider.dart';
 
@@ -16,17 +17,66 @@ class _AddPetState extends State<AddPet> {
   //fields for pet profile
   final TextEditingController nameController = TextEditingController();
   final TextEditingController aboutController = TextEditingController();
+  final TextEditingController kilosController = TextEditingController();
   String? selectedSex;
   String imageUrl = ""; 
+  int kilos=0;
 
   void initState(){
     super.initState();
     fetchImages();
   }
 
-  void savePetInfo(){
-
+  void dispose(){
+    nameController.dispose();
+    aboutController.dispose();
+    kilosController.dispose();
+    super.dispose();
   }
+
+  void savePetInfo(List<String> image) async{
+     final User user = FirebaseAuth.instance.currentUser!;
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+  DocumentReference userRef = firestore.collection("users").doc(user.uid);
+
+  try {
+    DocumentSnapshot userSnapshot = await userRef.get();
+    if (!userSnapshot.exists) {
+      await userRef.set({
+        "uid": user.uid,
+        "email": user.email,
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+    }
+
+    DocumentReference petRef = await userRef.collection("pets").add({
+      "timestamp": FieldValue.serverTimestamp(),
+    });
+
+    // 🔹 Ensure "about" text is correctly trimmed and saved
+    await petRef.collection("pet_info").doc("details").set({
+      "name": nameController.text.trim(),
+      "sex": selectedSex ?? "Unknown",
+      "imageUrl": image.isNotEmpty ? image.last : "",
+      "about": aboutController.text.trim(), // 🔹 Trimmed input
+      "kilograms": "${kilosController.text.trim()} kg"
+    });
+
+    // 🔹 Close the dialog and show Snackbar inside it
+    Navigator.pop(context); // Close the dialog after saving
+
+    setState(() {
+      nameController.clear();
+      aboutController.clear();
+      kilosController.clear();
+      selectedSex = null;
+    });
+
+  } catch (e) {
+    print("Error saving pet info: $e");
+  }
+  }
+
 
   Future<void> fetchImages() async{
     await Provider.of<StorageService>(context,listen: false).fetchImages();
@@ -118,6 +168,8 @@ class _AddPetState extends State<AddPet> {
                     ),
                   ),
                   SizedBox(height: 30,),
+                  Mytextfield(controller: kilosController,hintText: "Weight in kg",prefixIcon: Icon(Icons.scale,color: Colors.white,),obscureText: false,),
+                  SizedBox(height: 20,),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 50.0),
                     child: TextField(
@@ -160,14 +212,14 @@ class _AddPetState extends State<AddPet> {
                             : null, 
                       ),
                       SizedBox(width: 20,),
-                      FloatingActionButton(onPressed: () => storageService.deleteImages(imageUrl),
+                      FloatingActionButton(onPressed: () => storageService.deleteImages(imageUrls.last),
                       backgroundColor:  const Color.fromARGB(130, 255, 255, 255),
                       child: const Icon(Icons.remove,color: Color(0xFF6C4C57),),
                       ),
                     ],
                   ),
                   SizedBox(height: 20,),
-                  MyButtonForCreation(onTap: savePetInfo,text :"Create profile"),
+                  MyButtonForCreation(onTap:() => savePetInfo(imageUrls),text :"Create profile"),
                 ],
               ),
             ),
