@@ -158,6 +158,11 @@ void showSnackbar(BuildContext context, String message, Color color) {
       content: Text(message, style: TextStyle(color: Colors.white)),
       backgroundColor: color,
       duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating, 
+      margin: EdgeInsets.all(20), 
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10), 
+      ),
     ),
   );
 }

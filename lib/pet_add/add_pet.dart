@@ -27,12 +27,12 @@ class _AddPetState extends State<AddPet> {
     fetchImages();
   }
 
-  void dispose(){
+  /*void dispose(){
     nameController.dispose();
     aboutController.dispose();
     kilosController.dispose();
     super.dispose();
-  }
+  }*/
 
   void savePetInfo(List<String> image) async{
      final User user = FirebaseAuth.instance.currentUser!;
@@ -58,11 +58,10 @@ class _AddPetState extends State<AddPet> {
       "name": nameController.text.trim(),
       "sex": selectedSex ?? "Unknown",
       "imageUrl": image.isNotEmpty ? image.last : "",
-      "about": aboutController.text.trim(), // 🔹 Trimmed input
+      "about": aboutController.text.trim(), 
       "kilograms": "${kilosController.text.trim()} kg"
     });
 
-    // 🔹 Close the dialog and show Snackbar inside it
     Navigator.pop(context); // Close the dialog after saving
 
     setState(() {
@@ -173,6 +172,7 @@ class _AddPetState extends State<AddPet> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 50.0),
                     child: TextField(
+                        controller: aboutController,
                         cursorColor: Color(0xFF73BDF3), 
                         maxLines: 5, 
                         style: TextStyle(color: Colors.white), 
