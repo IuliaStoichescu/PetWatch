@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:pet_watch/helpers/square_fab.dart';
 import 'package:pet_watch/pet_add/add_pet.dart';
+import 'package:pet_watch/pet_add/pet_card.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -81,82 +82,19 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Stack(
         children: [
-          StreamBuilder(
-            stream: FirebaseFirestore.instance
-                .collection("users")
-                .doc(user.uid)
-                .collection("pets")
-                .snapshots(),
-            builder: (context, AsyncSnapshot<QuerySnapshot> petSnapshot) {
-              if (petSnapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
+            PetList(),
 
-              if (!petSnapshot.hasData || petSnapshot.data!.docs.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "No pet profiles added yet!",
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
-                      ),
-                      Lottie.asset("assets/missing_animation.json"),
-                    ],
-                  ),
-                );
-              }
-
-              return ListView(
-                padding: EdgeInsets.all(16),
-                children: petSnapshot.data!.docs.map((petDoc) {
-                  return FutureBuilder(
-                    future: petDoc.reference.collection("pet_info").doc("details").get(),
-                    builder: (context, AsyncSnapshot<DocumentSnapshot> detailsSnapshot) {
-                      if (detailsSnapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-
-                      if (!detailsSnapshot.hasData || !detailsSnapshot.data!.exists) {
-                        return SizedBox(); 
-                      }
-
-                var petDetails = detailsSnapshot.data!.data() as Map<String, dynamic>;
-
-                return Card(
-                  elevation: 3,
-                  margin: EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    leading: petDetails["imageUrl"] != null && petDetails["imageUrl"].isNotEmpty
-                        ? Image.network(petDetails["imageUrl"], width: 50, height: 50, fit: BoxFit.cover)
-                        : Icon(Icons.pets, color: Color(0xFF6C4C57)),
-                    title: Text(petDetails["name"] ?? "Unnamed Pet"),
-                    subtitle: Text("Weight: ${petDetails["kilograms"] ?? "N/A"}"),
-                    onTap: () {
-                      // Open detailed pet info page if needed
-                    },
-                  ),
-                );
-              },
-            );
-          }).toList(),
-        );
-      },
-    ),
-
-    Positioned(
-      bottom: 40,
-      left: MediaQuery.of(context).size.width / 2 - 30,
-      child: SquareFab(
-        onPressed: () {
-          showAddPetPopup(context);
-        },
-      ),
-    ),
-  ],
-),
-
-
+            Positioned(
+              bottom: 40,
+              left: MediaQuery.of(context).size.width / 2 - 30,
+              child: SquareFab(
+                onPressed: () {
+                  showAddPetPopup(context);
+                },
+              ),
+            ),
+          ],
+        ),
     );
   }
 }
@@ -175,10 +113,10 @@ extension StringExtension on String {
   }
 }
 
-void showAddPetPopup(BuildContext context) {
-  showDialog(
+Future<void> showAddPetPopup(BuildContext context) async {
+  bool? petSaved = await showDialog(
     context: context,
-    barrierDismissible: true,
+    barrierDismissible: true, // Allow closing without saving
     builder: (BuildContext context) {
       return Dialog(
         shape: RoundedRectangleBorder(
@@ -187,10 +125,14 @@ void showAddPetPopup(BuildContext context) {
         child: AddPet(),
       );
     },
-  ).then((_) {
+  );
+
+  // Show Snackbar only if a pet was saved
+  if (petSaved == true) {
     showSnackbar(context, "Pet profile saved successfully!", Colors.green);
-  });
+  }
 }
+
 void showSnackbar(BuildContext context, String message, Color color) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(

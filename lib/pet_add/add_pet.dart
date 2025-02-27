@@ -62,7 +62,7 @@ class _AddPetState extends State<AddPet> {
       "kilograms": "${kilosController.text.trim()} kg"
     });
 
-    Navigator.pop(context); // Close the dialog after saving
+    Navigator.pop(context,true); // Close the dialog after saving
 
     setState(() {
       nameController.clear();
