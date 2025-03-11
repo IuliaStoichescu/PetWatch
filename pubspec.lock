@@ -105,6 +105,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
+  connectivity_plus:
+    dependency: "direct main"
+    description:
+      name: connectivity_plus
+      sha256: "04bf81bb0b77de31557b58d052b24b3eee33f09a6e7a8c68a3e247c7df19ec27"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.1.3"
+  connectivity_plus_platform_interface:
+    dependency: transitive
+    description:
+      name: connectivity_plus_platform_interface
+      sha256: "42657c1715d48b167930d5f34d00222ac100475f73d10162ddf43e714932f204"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.1"
   cross_file:
     dependency: transitive
     description:
@@ -129,6 +145,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  dbus:
+    dependency: transitive
+    description:
+      name: dbus
+      sha256: "79e0c23480ff85dc68de79e2cd6334add97e48f7f4865d17686dd6ea81a47e8c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.11"
+  event_bus:
+    dependency: transitive
+    description:
+      name: event_bus
+      sha256: "1a55e97923769c286d295240048fc180e7b0768902c3c2e869fe059aafa15304"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.1"
   fake_async:
     dependency: transitive
     description:
@@ -448,6 +480,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.1+1"
+  internet_connection_checker_plus:
+    dependency: "direct main"
+    description:
+      name: internet_connection_checker_plus
+      sha256: eb3a6f03e7b1641589f580993d29aee0b3c4920fc618f7556de359fedb87b02e
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.7.1"
   json_annotation:
     dependency: transitive
     description:
@@ -528,6 +568,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  mqtt_client:
+    dependency: "direct main"
+    description:
+      name: mqtt_client
+      sha256: "85fa7e9aad03fbd6a54fcaf46127579f3e049b4834557a06e49aea7869b04c94"
+      url: "https://pub.dev"
+    source: hosted
+    version: "10.8.0"
   nested:
     dependency: transitive
     description:
@@ -536,6 +584,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
+  nm:
+    dependency: transitive
+    description:
+      name: nm
+      sha256: "2c9aae4127bdc8993206464fcc063611e0e36e72018696cd9631023a31b24254"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.0"
   path:
     dependency: transitive
     description:

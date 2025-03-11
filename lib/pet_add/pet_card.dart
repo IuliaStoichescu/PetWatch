@@ -93,89 +93,92 @@ class _PetCardState extends State<PetCard> {
     IconData genderIcon = isFemale ? Icons.female : Icons.male;
     Color genderColor = isFemale ? Colors.pinkAccent : Colors.blueAccent;
 
-    return GFCard(
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      content: Stack(
-        children: [
-          Row(
-            children: [
-              // Pet Image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(50),
-                child: imageUrl.isNotEmpty
-                    ? Image.network(imageUrl, width: 80, height: 80, fit: BoxFit.cover)
-                    : Icon(Icons.pets, size: 50, color: Color(0xFF6C4C57)),
-              ),
-              SizedBox(width: 10),
-
-              // Pet Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: GFCard(
+        elevation: 5,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        content: Stack(
+          children: [
+            Row(
+              children: [
+                // Pet Image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(50),
+                  child: imageUrl.isNotEmpty
+                      ? Image.network(imageUrl, width: 50, height: 50, fit: BoxFit.cover)
+                      : Icon(Icons.pets, size: 50, color: Color(0xFF6C4C57)),
+                ),
+                SizedBox(width: 10),
+      
+                // Pet Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Name: $petName", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      Row(
+                        children: [
+                          Text("Sex: $sex", style: TextStyle(fontSize: 16)),
+                          SizedBox(width: 5),
+                          Icon(genderIcon, color: genderColor, size: 24),
+                        ],
+                      ),
+                      Text("Weight: $weight", style: TextStyle(fontSize: 16)),
+                      Divider(thickness: 1, color: Colors.black,),
+                      Text("About: $about", style: TextStyle(fontSize: 14, overflow: TextOverflow.ellipsis),overflow: TextOverflow.visible,),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 30,),
+      
+                // Toggle & Arrow Button
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text("Name: $petName", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                    Row(
-                      children: [
-                        Text("Sex: $sex", style: TextStyle(fontSize: 16)),
-                        SizedBox(width: 5),
-                        Icon(genderIcon, color: genderColor, size: 24),
-                      ],
+                    SizedBox(height: 30,),
+                    Transform.scale(
+                      scale: 1.2,
+                      child: Switch(
+                        value: isTrackingOn,
+                        onChanged: (value) {
+                          setState(() {
+                            isTrackingOn = value;
+                          });
+                        },
+                        activeColor: Colors.green,
+                        activeTrackColor: Colors.greenAccent,
+                        inactiveThumbColor: const Color.fromARGB(255, 110, 0, 0),
+                        inactiveTrackColor: Colors.red,
+                      ),
                     ),
-                    Text("Weight: $weight", style: TextStyle(fontSize: 16)),
-                    Divider(thickness: 1, color: Colors.black,),
-                    Text("About: $about", style: TextStyle(fontSize: 14, overflow: TextOverflow.ellipsis),overflow: TextOverflow.visible,),
+                    if (isTrackingOn)
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => MapPage()),
+                            );// Navigate to map
+                        },
+                        child: Icon(Icons.arrow_forward, color: Colors.black, size: 30),
+                      ),
                   ],
                 ),
-              ),
-              SizedBox(width: 30,),
-
-              // Toggle & Arrow Button
-              Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SizedBox(height: 30,),
-                  Transform.scale(
-                    scale: 1.2,
-                    child: Switch(
-                      value: isTrackingOn,
-                      onChanged: (value) {
-                        setState(() {
-                          isTrackingOn = value;
-                        });
-                      },
-                      activeColor: Colors.green,
-                      activeTrackColor: Colors.greenAccent,
-                      inactiveThumbColor: const Color.fromARGB(255, 110, 0, 0),
-                      inactiveTrackColor: Colors.red,
-                    ),
-                  ),
-                  if (isTrackingOn)
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => MapPage()),
-                          );// Navigate to map
-                      },
-                      child: Icon(Icons.arrow_forward, color: Colors.black, size: 30),
-                    ),
-                ],
-              ),
-            ],
-          ),
-
-          Positioned(
-            top: -5,
-            right: 2,
-            child: IconButton(
-              icon: Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _confirmDeletePet(context),
+              ],
             ),
-          ),
-        ],
+      
+            Positioned(
+              top: -5,
+              right: 2,
+              child: IconButton(
+                icon: Icon(Icons.delete, color: Colors.red),
+                onPressed: () => _confirmDeletePet(context),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

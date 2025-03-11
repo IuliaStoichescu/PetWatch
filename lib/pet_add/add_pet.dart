@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -80,9 +82,10 @@ class _AddPetState extends State<AddPet> {
   Future<void> fetchImages() async{
     await Provider.of<StorageService>(context,listen: false).fetchImages();
   }
-
+final minWidth = 500.0;
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Consumer<StorageService>(
       builder: (context,storageService,child){
         final List<String> imageUrls = storageService.imageURL;
@@ -91,136 +94,143 @@ class _AddPetState extends State<AddPet> {
             color: Color(0xFF6C4C57), 
             borderRadius: BorderRadius.circular(15), 
           ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(height: 10,width: 30,),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(width: 20,),
-                      Column(
-                        children: [
-                          Text("Let's create ",style: TextStyle(fontSize: 20,color: Colors.white),),
-                          Text("your pet's profile!",style: TextStyle(fontSize: 20,color: Colors.white),),
-                          Text("(Guide. Continue below ⬇️)",style: TextStyle(color: Colors.white))
-                        ],
-                      ),
-                      Lottie.asset("assets/cat_play.json",width: 150,height: 150),
-                    ],
-                  ),
-                  Text("🔷Once your pet’s profile is ready, ",style: TextStyle(color: Colors.white)),
-                  Text("you'll see a toggle switch next to it",style: TextStyle(color: Colors.white)),
-                  SizedBox(height: 10,),
-                  Divider(thickness: 0.5,color: const Color.fromARGB(255, 44, 44, 44),),
-                  SizedBox(height: 10,),
-                  Text("🔷Red Toggle: Your pet tracker is not ",style: TextStyle(color: Colors.white)),
-                  Text("linked yet. Keep it like this until you",style: TextStyle(color: Colors.white)),
-                  Text(" make sure to attach the tracking device ",style: TextStyle(color: Colors.white)),
-                  Text("to your pet's collar.",style: TextStyle(color: Colors.white)),
-                  Image.asset("assets/off.png",width: 150,height: 150,),
-                  SizedBox(height: 10,),
-                  Divider(thickness: 0.5,color: const Color.fromARGB(255, 44, 44, 44),),
-                  SizedBox(height: 10,),
-                  Text("🔷When you switch it to the Green Toggle that ",style: TextStyle(color: Colors.white)),
-                  Text("means the device is successfully connected!",style: TextStyle(color: Colors.white)),
-                  Text(" Now, you’re all set to track your pet’s location",style: TextStyle(color: Colors.white)),
-                  Text(" in real-time",style: TextStyle(color: Colors.white)),
-                  Image.asset("assets/on.png",width: 150,height: 150,),
-                  SizedBox(height: 30,),
-                  Text("Pet Profile",style: TextStyle(color: Colors.white,fontSize: 30,decoration: TextDecoration.underline,decorationColor: const Color.fromARGB(255, 255, 255, 255),),),
-                  SizedBox(height: 30,),
-                  Mytextfield(controller: nameController,hintText: "PetName",prefixIcon: Icon(Icons.pets,color: Colors.white,),obscureText: false,),
-                  SizedBox(height: 20,),
-                  SizedBox(
-                    width: 265, 
-                    child: DropdownButtonFormField<String>(
-                      value: selectedSex,
-                      items: ["Male", "Female"].map((String sex) {
-                        return DropdownMenuItem(
-                          value: sex,
-                          child: Text(
-                            sex,
-                            style: TextStyle(color: Colors.white), 
+        child: ConstrainedBox(
+           constraints: BoxConstraints(
+                    maxWidth: max(screenWidth, minWidth),
                           ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedSex = value;
-                        });
-                      },
-                      decoration: InputDecoration(
-                        //labelText: "Sex",
-                        labelStyle: TextStyle(color: Colors.white), 
-                        filled: true,
-                        fillColor: const Color.fromARGB(98, 255, 255, 255), 
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10), 
-                          borderSide: BorderSide.none, 
+          child: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(height: 10,width: 30,),
+                    FittedBox(
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(width: 20,),
+                            Column(
+                              children: [
+                                Text("Let's create ",style: TextStyle(fontSize: 20,color: Colors.white),),
+                                Text("your pet's profile!",style: TextStyle(fontSize: 20,color: Colors.white),),
+                                Text("(Guide. Continue below ⬇️)",style: TextStyle(color: Colors.white))
+                              ],
+                            ),
+                            Lottie.asset("assets/cat_play.json",width: 150,height: 150),
+                          ],
                         ),
-                      ),
-                      dropdownColor: Colors.grey[700], 
                     ),
-                  ),
-                  SizedBox(height: 30,),
-                  Mytextfield(controller: kilosController,hintText: "Weight in kg",prefixIcon: Icon(Icons.scale,color: Colors.white,),obscureText: false,),
-                  SizedBox(height: 20,),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 50.0),
-                    child: TextField(
-                        controller: aboutController,
-                        cursorColor: Color(0xFF73BDF3), 
-                        maxLines: 5, 
-                        style: TextStyle(color: Colors.white), 
+                    Text("🔷Once your pet’s profile is ready, ",style: TextStyle(color: Colors.white)),
+                    Text("you'll see a toggle switch next to it",style: TextStyle(color: Colors.white)),
+                    SizedBox(height: 10,),
+                    Divider(thickness: 0.5,color: const Color.fromARGB(255, 44, 44, 44),),
+                    SizedBox(height: 10,),
+                    Text("🔷Red Toggle: Your pet tracker is not ",style: TextStyle(color: Colors.white)),
+                    Text("linked yet. Keep it like this until you",style: TextStyle(color: Colors.white)),
+                    Text(" make sure to attach the tracking device ",style: TextStyle(color: Colors.white)),
+                    Text("to your pet's collar.",style: TextStyle(color: Colors.white)),
+                    Image.asset("assets/off.png",width: 150,height: 150,),
+                    SizedBox(height: 10,),
+                    Divider(thickness: 0.5,color: const Color.fromARGB(255, 44, 44, 44),),
+                    SizedBox(height: 10,),
+                    Text("🔷When you switch it to the Green Toggle that ",style: TextStyle(color: Colors.white)),
+                    Text("means the device is successfully connected!",style: TextStyle(color: Colors.white)),
+                    Text(" Now, you’re all set to track your pet’s location",style: TextStyle(color: Colors.white)),
+                    Text(" in real-time",style: TextStyle(color: Colors.white)),
+                    Image.asset("assets/on.png",width: 150,height: 150,),
+                    SizedBox(height: 30,),
+                    Text("Pet Profile",style: TextStyle(color: Colors.white,fontSize: 30,decoration: TextDecoration.underline,decorationColor: const Color.fromARGB(255, 255, 255, 255),),),
+                    SizedBox(height: 30,),
+                    Mytextfield(controller: nameController,hintText: "PetName",prefixIcon: Icon(Icons.pets,color: Colors.white,),obscureText: false,),
+                    SizedBox(height: 20,),
+                    SizedBox(
+                      width: 265, 
+                      child: DropdownButtonFormField<String>(
+                        value: selectedSex,
+                        items: ["Male", "Female"].map((String sex) {
+                          return DropdownMenuItem(
+                            value: sex,
+                            child: Text(
+                              sex,
+                              style: TextStyle(color: Colors.white), 
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedSex = value;
+                          });
+                        },
                         decoration: InputDecoration(
-                          enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(color: Color.fromARGB(201, 255, 255, 255)), 
+                          //labelText: "Sex",
+                          labelStyle: TextStyle(color: Colors.white), 
+                          filled: true,
+                          fillColor: const Color.fromARGB(98, 255, 255, 255), 
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10), 
+                            borderSide: BorderSide.none, 
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white), 
-                          ),
-                          fillColor: Color.fromARGB(91, 255, 253, 253), 
-                          filled: true, 
-                          hintText: "About my pet ❤️", 
-                          hintStyle: TextStyle(color: Colors.white), 
-                          focusColor: Colors.white, 
                         ),
+                        dropdownColor: Colors.grey[700], 
                       ),
-                  ),
-
-                  SizedBox(height: 40,),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FloatingActionButton(onPressed: () => storageService.uploadImage(),
-                      backgroundColor: const Color.fromARGB(125, 255, 255, 255),
-                      child: const Icon(Icons.add,color: Color(0xFF6C4C57),),
-                      ),
-                      SizedBox(width: 20,),
-                      CircleAvatar(
-                        radius: 80, 
-                        backgroundColor: const Color.fromARGB(128, 255, 255, 255), 
-                        backgroundImage: imageUrls.isNotEmpty
-                            ? NetworkImage(imageUrls.last) 
-                            : null, 
-                        child: imageUrls.isEmpty
-                            ? Icon(Icons.image, size: 50, color: Color(0xFF6C4C57)) 
-                            : null, 
-                      ),
-                      SizedBox(width: 20,),
-                      FloatingActionButton(onPressed: () => storageService.deleteImages(imageUrls.last),
-                      backgroundColor:  const Color.fromARGB(130, 255, 255, 255),
-                      child: const Icon(Icons.remove,color: Color(0xFF6C4C57),),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20,),
-                  MyButtonForCreation(onTap:() => savePetInfo(imageUrls),text :"Create profile"),
-                ],
+                    ),
+                    SizedBox(height: 30,),
+                    Mytextfield(controller: kilosController,hintText: "Weight in kg",prefixIcon: Icon(Icons.scale,color: Colors.white,),obscureText: false,),
+                    SizedBox(height: 20,),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 50.0),
+                      child: TextField(
+                          controller: aboutController,
+                          cursorColor: Color(0xFF73BDF3), 
+                          maxLines: 5, 
+                          style: TextStyle(color: Colors.white), 
+                          decoration: InputDecoration(
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Color.fromARGB(201, 255, 255, 255)), 
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white), 
+                            ),
+                            fillColor: Color.fromARGB(91, 255, 253, 253), 
+                            filled: true, 
+                            hintText: "About my pet ❤️", 
+                            hintStyle: TextStyle(color: Colors.white), 
+                            focusColor: Colors.white, 
+                          ),
+                        ),
+                    ),
+          
+                    SizedBox(height: 40,),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FloatingActionButton(onPressed: () => storageService.uploadImage(),
+                        backgroundColor: const Color.fromARGB(125, 255, 255, 255),
+                        child: const Icon(Icons.add,color: Color(0xFF6C4C57),),
+                        ),
+                        SizedBox(width: 20,),
+                        CircleAvatar(
+                          radius: 80, 
+                          backgroundColor: const Color.fromARGB(128, 255, 255, 255), 
+                          backgroundImage: imageUrls.isNotEmpty
+                              ? NetworkImage(imageUrls.last) 
+                              : null, 
+                          child: imageUrls.isEmpty
+                              ? Icon(Icons.image, size: 50, color: Color(0xFF6C4C57)) 
+                              : null, 
+                        ),
+                        SizedBox(width: 20,),
+                        FloatingActionButton(onPressed: () => storageService.deleteImages(imageUrls.last),
+                        backgroundColor:  const Color.fromARGB(130, 255, 255, 255),
+                        child: const Icon(Icons.remove,color: Color(0xFF6C4C57),),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20,),
+                    MyButtonForCreation(onTap:() => savePetInfo(imageUrls),text :"Create profile"),
+                  ],
+                ),
               ),
             ),
           ),
