@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';  // Internet status detection
@@ -24,6 +25,9 @@ class _MapPageState extends State<MapPage> {
   double speed = 0.0;
   int satellites = 0;
   String time = "";
+  LatLng initialLocation = LatLng(45.7235054321469, 21.250409338816176);
+  late GoogleMapController mapController;
+  Map<String,Marker> _markers = {};
 
   @override
   void initState() {
@@ -223,11 +227,42 @@ void _showGPSCoords(BuildContext context) {
           _showGPSCoords(context);
         },
       ),
-],
-
+    ],
   ),
-);
-
+  body: GoogleMap(
+    initialCameraPosition: CameraPosition(target: initialLocation,zoom: 14),
+    onMapCreated: (controller) {
+      mapController = controller;
+      addMarker('test',initialLocation);
+    },
+    markers: _markers.values.toSet(),
+   ),
+  );
   }
+
+  addMarker(String id, LatLng location) async {
+  var markerIcon = await BitmapDescriptor.fromAssetImage(
+    ImageConfiguration(size: Size(48, 48)),
+    'assets/clemi.jpeg',
+  );
+
+  var marker = Marker(
+    markerId: MarkerId(id),
+    position: location,
+    icon: markerIcon,
+    infoWindow: InfoWindow(
+      title: 'MyPet',
+      snippet: 'I am out at the moment',
+    ),
+    onTap: () {
+      mapController.showMarkerInfoWindow(MarkerId(id));
+    },
+  );
+
+  _markers[id] = marker;
+
+  setState(() {}); 
+}
+
 }
 
