@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class SquareFab extends StatefulWidget {
   final VoidCallback onPressed;
 
-  const SquareFab({Key? key, required this.onPressed}) : super(key: key);
+  const SquareFab({super.key, required this.onPressed});
 
   @override
   _SquareFabState createState() => _SquareFabState();

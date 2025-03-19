@@ -6,6 +6,8 @@ import 'package:lottie/lottie.dart';
 import 'package:pet_watch/map_logic/map.dart';
 
 class PetList extends StatefulWidget {
+  const PetList({super.key});
+
   @override
   _PetListState createState() => _PetListState();
 }
@@ -71,7 +73,7 @@ class PetCard extends StatefulWidget {
   final String petId; // ID of the pet
   final Map<String, dynamic> petDetails;
 
-  const PetCard({required this.petId, required this.petDetails, Key? key}) : super(key: key);
+  const PetCard({required this.petId, required this.petDetails, super.key});
 
   @override
   _PetCardState createState() => _PetCardState();

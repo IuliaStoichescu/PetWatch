@@ -7,6 +7,8 @@ import 'package:pet_watch/pet_add/add_pet.dart';
 import 'package:pet_watch/pet_add/pet_card.dart';
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   _HomePageState createState() => _HomePageState();
 }
