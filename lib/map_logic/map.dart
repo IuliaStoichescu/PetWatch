@@ -35,7 +35,10 @@ class _MapPageState extends State<MapPage> {
   late GoogleMapController mapController;
   final Map<String,Marker> _markers = {};
   Color markerColor = Colors.red;//default color
-  
+  String? selectedMarkerId;
+  LatLng? selectedMarkerPosition; 
+  String selectedPetImage = ""; 
+
 
   @override
   void initState() {
@@ -274,46 +277,148 @@ void _showGPSCoords(BuildContext context) {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-  appBar: AppBar(
-    title: Text("GPS Tracker"),
-    automaticallyImplyLeading: true,
-    backgroundColor: const Color.fromARGB(255, 196, 175, 254),
-    actions: [
-      IconButton(
-        icon: Icon(Icons.info_outline),
-        onPressed: () {
-          _showGPSCoords(context);
-        },
+  appBar: PreferredSize(
+    preferredSize: Size.fromHeight(60),
+    child: Container(
+      decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [ui.Color.fromARGB(255, 144, 230, 219), ui.Color.fromARGB(255, 248, 165, 239), ui.Color.fromARGB(255, 244, 116, 186)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 10,
+                spreadRadius: 2,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+      child: AppBar(
+        backgroundColor: Colors.transparent,
+        iconTheme: IconThemeData(color: Colors.white),
+        elevation: 0,
+        title: Text("GPS Tracker",style: TextStyle(color: Colors.white),),
+        automaticallyImplyLeading: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.info_outline,color: Colors.white,),
+            onPressed: () {
+              _showGPSCoords(context);
+            },
+          ),
+        ],
       ),
-    ],
+    ),
   ),
-  body: GoogleMap(
-    initialCameraPosition: CameraPosition(target: initialLocation,zoom: 14),
-    onMapCreated: (controller) {
-      mapController = controller;
-      addMarker('test',initialLocation,widget.petImageUrl);
-    },
-    markers: _markers.values.toSet(),
-   ),
+  body: Stack(
+  children: [
+    GoogleMap(
+      initialCameraPosition: CameraPosition(target: initialLocation, zoom: 14),
+      onMapCreated: (controller) {
+        mapController = controller;
+        addMarker('test', initialLocation, widget.petImageUrl);
+      },
+      markers: _markers.values.toSet(),
+      onTap: (_) {
+        setState(() {
+          selectedMarkerId = null; // Close info window when tapping outside
+        });
+      },
+    ),
+
+    // Custom Info Window
+    if (selectedMarkerId != null)
+      Positioned(
+        left: MediaQuery.of(context).size.width * 0.3,
+        top: MediaQuery.of(context).size.height * 0.5,
+        child: Container(
+          padding: EdgeInsets.all(12),
+          width: 250,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromARGB(255, 144, 230, 219),
+                Color.fromARGB(255, 248, 165, 239),
+                Color.fromARGB(255, 244, 116, 186)
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 10,
+                spreadRadius: 2,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(50),
+                child: Image.network(selectedPetImage, height: 50, width: 50, fit: BoxFit.cover),
+              ),
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.circle,color: Colors.greenAccent,size: 5,),
+                  SizedBox(width: 5,),
+                  Expanded(
+                    child: Text(
+                      "Currently tracking: ${widget.petName}",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    selectedMarkerId = null;
+                  });
+                },
+                child: Text("Close"),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.purple),
+              ),
+            ],
+          ),
+        ),
+      ),
+  ],
+),
+
   );
   }
 
 void addMarker(String id, LatLng location, String imageUrl) async {
-  BitmapDescriptor markerIcon = await createCustomMarker(imageUrl, markerColor);
+  BitmapDescriptor markerIcon = await createCustomMarker(imageUrl);
 
   var marker = Marker(
     markerId: MarkerId(id),
     position: location,
     icon: markerIcon,
     onTap: () {
-      _showCustomInfoWindow(id, location, imageUrl);
+      setState(() {
+        selectedMarkerId = id; // Store the marker ID for info window visibility
+        selectedMarkerPosition = location;
+        selectedPetImage = imageUrl;
+      });
     },
   );
 
   _markers[id] = marker;
-
   setState(() {}); // Refresh UI to update the marker
 }
+
 void _showCustomInfoWindow(String markerId, LatLng location, String imageUrl) {
   showModalBottomSheet(
     context: context,
@@ -392,58 +497,42 @@ void _showCustomInfoWindow(String markerId, LatLng location, String imageUrl) {
   );
 }
 
-Future<BitmapDescriptor> createCustomMarker(String imageUrl, Color markerColor) async {
+Future<BitmapDescriptor> createCustomMarker(String imageUrl) async {
   final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
   final Canvas canvas = Canvas(pictureRecorder);
-  final double markerWidth = 180.0;
-  final double markerHeight = 200.0;
+  final double markerSize = 180.0; 
+  final double circleSize = 140.0; 
 
-  final Paint paint = Paint()..color = markerColor;
-
-  Path path = Path();
-  path.moveTo(markerWidth / 2, markerHeight); // Bottom point
-  path.lineTo(markerWidth * 0.1, markerHeight * 0.4); // Left side
-  path.arcToPoint(
-    Offset(markerWidth * 0.9, markerHeight * 0.4), // Right side curve
-    radius: Radius.circular(50),
-  );
-  path.lineTo(markerWidth / 2, markerHeight); // Closing the pin shape
-  canvas.drawPath(path, paint);
-
-  // Draw the rounded head (a big circle at the top)
-  final Paint headPaint = Paint()..color = markerColor;
-  Offset headCenter = Offset(markerWidth / 2, markerHeight * 0.3);
-  double headRadius = 45;
-  canvas.drawCircle(headCenter, headRadius, headPaint);
-
-  // Draw a white circular cutout in the center
-  final Paint cutoutPaint = Paint()..color = Colors.white;
-  double circleRadius = 50;
-  canvas.drawCircle(headCenter, circleRadius, cutoutPaint);
-
-  // Load pet image and clip it to a circle
   final http.Response response = await http.get(Uri.parse(imageUrl));
   final Uint8List imageData = response.bodyBytes;
-  final ui.Codec codec = await ui.instantiateImageCodec(imageData, targetWidth: 120,targetHeight: 100);
+  final ui.Codec codec = await ui.instantiateImageCodec(imageData, targetWidth: circleSize.toInt(), targetHeight: circleSize.toInt());
   final ui.FrameInfo frameInfo = await codec.getNextFrame();
-
-  // Clip pet image into a perfect circle
   final ui.Image image = frameInfo.image;
-  final ui.Path clipPath = Path()
-    ..addOval(Rect.fromCircle(center: headCenter, radius: circleRadius));
 
+  final Paint paint = Paint()..color = Colors.redAccent; 
+
+  Offset center = Offset(markerSize / 2, markerSize / 2);
+  canvas.drawCircle(center, markerSize / 2, paint);
+
+  final Paint borderPaint = Paint()
+    ..color = Colors.white
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 8.0;
+  canvas.drawCircle(center, circleSize / 2 + 4, borderPaint);
+
+  Path clipPath = Path()..addOval(Rect.fromCircle(center: center, radius: circleSize / 2));
   canvas.save();
   canvas.clipPath(clipPath);
-  canvas.drawImage(image, Offset(headCenter.dx - circleRadius, headCenter.dy - circleRadius), Paint());
+  canvas.drawImage(image, Offset((markerSize - circleSize) / 2, (markerSize - circleSize) / 2), Paint());
   canvas.restore();
 
-  // Convert to BitmapDescriptor
-  final ui.Image markerAsImage = await pictureRecorder.endRecording().toImage(markerWidth.toInt(), markerHeight.toInt());
+  final ui.Image markerAsImage = await pictureRecorder.endRecording().toImage(markerSize.toInt(), markerSize.toInt());
   final ByteData? byteData = await markerAsImage.toByteData(format: ui.ImageByteFormat.png);
   final Uint8List markerData = byteData!.buffer.asUint8List();
 
   return BitmapDescriptor.fromBytes(markerData);
 }
+
 
 }
 
