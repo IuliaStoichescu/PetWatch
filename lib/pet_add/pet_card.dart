@@ -161,7 +161,10 @@ class _PetCardState extends State<PetCard> {
                         onTap: () {
                           Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => MapPage()),
+                              MaterialPageRoute(builder: (context) => MapPage(
+                              petName: widget.petDetails["name"] ?? "Unnamed Pet",
+                              petImageUrl: widget.petDetails["imageUrl"] ?? "", // Send pet image
+                            ),),
                             );// Navigate to map
                         },
                         child: Icon(Icons.arrow_forward, color: Colors.black, size: 30),

@@ -1,7 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:pet_watch/helpers/square_fab.dart';
 import 'package:pet_watch/pet_add/add_pet.dart';
 import 'package:pet_watch/pet_add/pet_card.dart';
