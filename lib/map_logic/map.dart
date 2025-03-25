@@ -7,10 +7,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:lottie/lottie.dart' show Lottie;
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';  // Internet status detection
+import 'package:pet_watch/map_logic/geofence_manager.dart';
+import 'package:pet_watch/map_logic/map_functions.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -48,13 +49,8 @@ class _MapPageState extends State<MapPage> {
   LatLng? selectedMarkerPosition; 
   String selectedPetImage = ""; 
   bool canConnect = true;
-
-  LatLng? geofenceCenter;
-  double geofenceRadius = 100;
+  final GeofenceManager geofenceManager = GeofenceManager();
   bool isSettingGeofence = false;
-  Circle? geofenceCircle;
-  bool wasOutside = false;
-
 
   void resetCoords()
   {
@@ -119,7 +115,7 @@ Future<void> decideConnectionStrategy() async {
   /// Monitors real-time internet connectivity changes
   void _monitorNetworkChanges() {
   Connectivity().onConnectivityChanged.listen((_) {
-    decideConnectionStrategy();  // 🔄 redecide la schimbarea conexiunii
+    decideConnectionStrategy();  // redecide la schimbarea conexiunii
   });
 }
 
@@ -153,20 +149,8 @@ void _listenToMessages() {
           time = match.group(6)!;
         });
       }
-      if (geofenceCenter != null) {
-        double dist = Geolocator.distanceBetween(
-          latitude,
-          longitude,
-          geofenceCenter!.latitude,
-          geofenceCenter!.longitude,
-        );
-
-        if (dist > geofenceRadius && !wasOutside) {
-          _showGeofenceAlert(); 
-          wasOutside = true;
-        } else if (dist <= geofenceRadius) {
-          wasOutside = false;
-        }
+        if (geofenceManager.checkIfOutside(latitude, longitude)) {
+               _showGeofenceAlert();
       }
 
     } catch (e) {
@@ -290,9 +274,9 @@ void _connectToWebSocket() {
 
   wsSubscription = wsChannel!.stream.listen(
     (message) {
-      print("📨 WebSocket message received: $message");
+      print("WebSocket message received: $message");
       setState(() {
-      canConnect = true;  // ✅ Connection confirmed via data
+      canConnect = true;  // Connection confirmed via data
     });
       _parseGPSData(message); // refolosim parserul MQTT
     },
@@ -341,7 +325,6 @@ void _connectToWebSocket() {
           canConnect = false;
         });
       };
-
 
     try {
         await client!.connect("Iuli25", "Iuli369147");
@@ -410,7 +393,7 @@ void dispose() {
   body: Stack(
   children: [
     GoogleMap(
-      circles: geofenceCircle != null ? {geofenceCircle!} : {},
+      circles: geofenceManager.geofenceCircle != null ? {geofenceManager.geofenceCircle!} : {},
       initialCameraPosition: CameraPosition(target: initialLocation, zoom: 14),
       onMapCreated: (controller) {
         mapController = controller;
@@ -420,7 +403,7 @@ void dispose() {
       onTap: (LatLng tappedPoint) {
   if (isSettingGeofence) {
     setState(() {
-      geofenceCenter = tappedPoint;
+      geofenceManager.updateCenter(tappedPoint);
     });
     _showRadiusSlider(); // slider de radius
   } else {
@@ -519,15 +502,14 @@ void dispose() {
         backgroundColor: ui.Color.fromARGB(255, 74, 140, 255),
         child: Icon(Icons.place,color: Colors.white,),
       ),
-),
+    ),
   ],
 ),
-
-  );
-  }
+);
+}
 
 void addMarker(String id, LatLng location, String imageUrl) async {
-  BitmapDescriptor markerIcon = await createCustomMarker(imageUrl);
+  BitmapDescriptor markerIcon = await MapFunctions.createCustomMarker(imageUrl);
 
   var marker = Marker(
     markerId: MarkerId(id),
@@ -546,164 +528,18 @@ void addMarker(String id, LatLng location, String imageUrl) async {
   setState(() {}); // Refresh UI to update the marker
 }
 
-void _showCustomInfoWindow(String markerId, LatLng location, String imageUrl) {
-  showModalBottomSheet(
-    context: context,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    backgroundColor: Colors.white,
-    builder: (context) {
-      return Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.circle,color: Colors.greenAccent,),
-                SizedBox(width: 10,),
-                Text(
-                  "Currently tracking : ${widget.petName}",
-                  
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            SizedBox(height: 10),
-            Image.network(imageUrl, height: 80, width: 80, fit: BoxFit.cover), // Pet Image
-            SizedBox(height: 10),
-            Text("Customize your marker color:"),
-            SizedBox(height: 10),
-            Wrap(
-              spacing: 10,
-              children: [
-                for (var color in [
-                     Colors.red,
-                     Colors.blue,
-                     Colors.green, 
-                     const ui.Color.fromARGB(255, 147, 46, 228),
-                     Colors.orange, 
-                     Colors.pink,
-                     Colors.yellow,
-                     Colors.cyanAccent,
-                     Colors.brown,
-                     Colors.white,
-                     Colors.black
-                     ])
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        markerColor = color; // Update color
-                        addMarker(markerId, location, imageUrl); // Update marker with new color
-                      });
-                      Navigator.pop(context); // Close the InfoWindow
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: Border.all(width: 2, color: Colors.black),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context), // Close InfoWindow
-              child: Text("Close"),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-Future<BitmapDescriptor> createCustomMarker(String imageUrl) async {
-  final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
-  final Canvas canvas = Canvas(pictureRecorder);
-  final double markerSize = 180.0; 
-  final double circleSize = 140.0; 
-
-  final http.Response response = await http.get(Uri.parse(imageUrl));
-  final Uint8List imageData = response.bodyBytes;
-  final ui.Codec codec = await ui.instantiateImageCodec(imageData, targetWidth: circleSize.toInt(), targetHeight: circleSize.toInt());
-  final ui.FrameInfo frameInfo = await codec.getNextFrame();
-  final ui.Image image = frameInfo.image;
-
-  final Paint paint = Paint()..color = Colors.redAccent; 
-
-  Offset center = Offset(markerSize / 2, markerSize / 2);
-  canvas.drawCircle(center, markerSize / 2, paint);
-
-  final Paint borderPaint = Paint()
-    ..color = Colors.white
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 8.0;
-  canvas.drawCircle(center, circleSize / 2 + 4, borderPaint);
-
-  Path clipPath = Path()..addOval(Rect.fromCircle(center: center, radius: circleSize / 2));
-  canvas.save();
-  canvas.clipPath(clipPath);
-  canvas.drawImage(image, Offset((markerSize - circleSize) / 2, (markerSize - circleSize) / 2), Paint());
-  canvas.restore();
-
-  final ui.Image markerAsImage = await pictureRecorder.endRecording().toImage(markerSize.toInt(), markerSize.toInt());
-  final ByteData? byteData = await markerAsImage.toByteData(format: ui.ImageByteFormat.png);
-  final Uint8List markerData = byteData!.buffer.asUint8List();
-
-  return BitmapDescriptor.fromBytes(markerData);
-}
-
 void _showRadiusSlider() {
-  showModalBottomSheet(
+  MapFunctions.showRadiusSlider(
     context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setModalState) {
-          return Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Select Geofence Radius (meters)', style: TextStyle(fontSize: 16)),
-                Slider(
-                  min: 50,
-                  max: 500,
-                  divisions: 9,
-                  label: '${geofenceRadius.toInt()} m',
-                  value: geofenceRadius,
-                  onChanged: (value) {
-                    setModalState(() => geofenceRadius = value);
-                  },
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      isSettingGeofence = false;
-                      geofenceCircle = Circle(
-                        circleId: CircleId('geofence'),
-                        center: geofenceCenter!,
-                        radius: geofenceRadius,
-                        fillColor: const ui.Color.fromARGB(255, 61, 185, 251).withOpacity(0.2),
-                        strokeColor: Colors.lightBlueAccent,
-                        strokeWidth: 2,
-                      );
-                    });
-                    Navigator.pop(context);
-                  },
-                  child: Text("Confirm"),
-                )
-              ],
-            ),
-          );
-        },
-      );
+    geofenceManager: geofenceManager,
+    onConfirm: () {
+      setState(() {
+        isSettingGeofence = false;
+        geofenceManager.buildGeofenceCircle();
+      });
+    },
+    onRadiusChanged: (value) {
+      geofenceManager.updateRadius(value);
     },
   );
 }
