@@ -68,8 +68,8 @@ class _MapPageState extends State<MapPage> {
     _monitorNetworkChanges(); // Check internet in real time
     _connectToMQTT();
     decideConnectionStrategy();
+    geofenceManager.loadGeofence(widget.petName);
   }
-
 Future<bool> espHasInternet() async {
   try {
     final response = await http.get(Uri.parse('http://192.168.4.1/status')).timeout(Duration(seconds: 2));
@@ -393,6 +393,7 @@ void dispose() {
   body: Stack(
   children: [
     GoogleMap(
+      myLocationButtonEnabled: false,
       circles: geofenceManager.geofenceCircle != null ? {geofenceManager.geofenceCircle!} : {},
       initialCameraPosition: CameraPosition(target: initialLocation, zoom: 14),
       onMapCreated: (controller) {
@@ -413,6 +414,56 @@ void dispose() {
   }
 },
     ),
+    Positioned(
+  bottom: 16,
+  right: 16,
+  child: FloatingActionButton(
+    backgroundColor: ui.Color.fromARGB(255, 255, 255, 255),
+    shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+              ),
+    heroTag: 'center_to_pet',
+    child: Icon(Icons.my_location,color: const ui.Color.fromARGB(255, 115, 115, 115),),
+    onPressed: () {
+      mapController.animateCamera(CameraUpdate.newLatLng(
+        initialLocation,
+      ));
+    },
+  ),
+),
+
+Positioned(
+  bottom: 90,
+  right: 16,
+  child: Column(
+    children: [
+      FloatingActionButton(
+        backgroundColor: ui.Color.fromARGB(255, 255, 255, 255),
+    shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+              ),
+        heroTag: 'zoom_in',
+        child: Icon(Icons.add,color: const ui.Color.fromARGB(255, 115, 115, 115)),
+        onPressed: () {
+          mapController.animateCamera(CameraUpdate.zoomIn());
+        },
+      ),
+      SizedBox(height: 10),
+      FloatingActionButton(
+        backgroundColor: ui.Color.fromARGB(255, 255, 255, 255),
+    shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+              ),
+        heroTag: 'zoom_out',
+        child: Icon(Icons.remove,color: const ui.Color.fromARGB(255, 115, 115, 115)),
+        onPressed: () {
+          mapController.animateCamera(CameraUpdate.zoomOut());
+        },
+      ),
+    ],
+  ),
+),
+
 
     // Custom Info Window
     if (selectedMarkerId != null)
@@ -482,6 +533,9 @@ void dispose() {
       left: 16,
       bottom: 16,
       child: FloatingActionButton(
+        shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+              ),
         onPressed: () {
           setState(() {
             isSettingGeofence = true;
@@ -496,11 +550,14 @@ void dispose() {
               color: ui.Color.fromARGB(255, 60, 214, 193),
               ) ,
               duration: Duration(seconds: 3),
+              shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+              ),
               ),
           );
         },
-        backgroundColor: ui.Color.fromARGB(255, 74, 140, 255),
-        child: Icon(Icons.place,color: Colors.white,),
+        backgroundColor: ui.Color.fromARGB(255, 255, 255, 255),
+        child: Icon(Icons.place,color: const ui.Color.fromARGB(255, 107, 107, 107),),
       ),
     ),
   ],
@@ -532,11 +589,12 @@ void _showRadiusSlider() {
   MapFunctions.showRadiusSlider(
     context: context,
     geofenceManager: geofenceManager,
-    onConfirm: () {
+    onConfirm: () async{
       setState(() {
         isSettingGeofence = false;
         geofenceManager.buildGeofenceCircle();
       });
+      await geofenceManager.saveGeofence(widget.petName);
     },
     onRadiusChanged: (value) {
       geofenceManager.updateRadius(value);

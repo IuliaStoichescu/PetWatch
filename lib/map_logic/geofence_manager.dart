@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GeofenceManager {
   LatLng? geofenceCenter;
@@ -66,5 +67,29 @@ class GeofenceManager {
 
   double _degreesToRadians(double degrees) {
     return degrees * (pi / 180);
+  }
+
+  // SAVE
+  Future<void> saveGeofence(String petId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (geofenceCenter != null) {
+      prefs.setDouble('${petId}_lat', geofenceCenter!.latitude);
+      prefs.setDouble('${petId}_lng', geofenceCenter!.longitude);
+      prefs.setDouble('${petId}_radius', geofenceRadius);
+    }
+  }
+
+  // LOAD
+  Future<void> loadGeofence(String petId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lat = prefs.getDouble('${petId}_lat');
+    final lng = prefs.getDouble('${petId}_lng');
+    final radius = prefs.getDouble('${petId}_radius');
+
+    if (lat != null && lng != null && radius != null) {
+      geofenceCenter = LatLng(lat, lng);
+      geofenceRadius = radius;
+      buildGeofenceCircle();
+    }
   }
 }

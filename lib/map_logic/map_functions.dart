@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import 'package:pet_watch/map_logic/geofence_manager.dart';
 
 class MapFunctions {
-  
   static Future<BitmapDescriptor> createCustomMarker(String imageUrl) async {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
@@ -67,6 +66,7 @@ class MapFunctions {
                 children: [
                   Text('Select Geofence Radius (meters)', style: TextStyle(fontSize: 16)),
                   Slider(
+                    activeColor: ui.Color.fromARGB(255, 60, 214, 193),
                     min: 50,
                     max: 500,
                     divisions: 9,
@@ -81,7 +81,8 @@ class MapFunctions {
                       onConfirm();
                       Navigator.pop(context);
                     },
-                    child: Text("Confirm"),
+                    style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Color(0xFF3CD6C1))),
+                    child: Icon(Icons.check,color: Colors.white,),
                   )
                 ],
               ),
