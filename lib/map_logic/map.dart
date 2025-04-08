@@ -52,6 +52,21 @@ class _MapPageState extends State<MapPage> {
   final GeofenceManager geofenceManager = GeofenceManager();
   bool isSettingGeofence = false;
 
+  double ax = 0.0;
+  double ay = 0.0;
+  double az = 0.0;
+  double gx = 0.0;
+  double gy = 0.0;
+  double gz = 0.0;
+  double anx = 0.0;
+  double any = 0.0;
+  double anz = 0.0;
+  double mag = 0.0;
+  double actMag = 0.0;
+  double noise = 0.0;
+  String state = "UNKNOWN";
+  String timeAcc = "00:00:00";
+
   void resetCoords()
   {
    latitude = 0.0;
@@ -123,18 +138,112 @@ void _listenToMessages() {
     client!.updates!.listen((messages) {
       final recMessage = messages[0].payload as MqttPublishMessage;
       final payload = MqttPublishPayload.bytesToStringAsString(recMessage.payload.message);
-
+      final topic = messages[0].topic;
       setState(() {
       canConnect = true;  
       });
+      if (topic == "gps/tracker") {
+      print("Received GPS data: $payload");
       _parseGPSData(payload);
+    } else if (topic == "accel/tracker") {
+      print("Received Accelerometer data: $payload");
+      _parseAccelData(payload);
+    } else if (topic == "event/tracker") {
+      print("Received Event data: $payload");
+      _parseEventData(payload);
+    }
     });
   }
 
+  void _parseAccelData(String payload) {
+  try {
+    // Regex for the first simple format: State and Time only
+    RegExp simpleRegex = RegExp(
+      r'(\w+),TIME\s*:\s*([0-9:]+)',
+      caseSensitive: false,
+    );
+
+    // Regex for the detailed format with accelerometer, gyroscope, and angle data
+    RegExp detailedRegex = RegExp(
+      r'AX\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*AY\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*AZ\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*GX\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*GY\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*GZ\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ANX\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ANY\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ANZ\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*MAG\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ACTMAG\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*NOISE\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*STATE\s*:\s*(\w+),\s*TIME\s*:\s*([0-9:]+)',
+      caseSensitive: false,
+    );
+
+    // Try to match the simple format first
+    Match? simpleMatch = simpleRegex.firstMatch(payload);
+
+    if (simpleMatch != null) {
+      state = simpleMatch.group(1)!;
+       timeAcc = simpleMatch.group(2)!;
+
+      print("Parsed Simple Accelerometer Data: STATE=$state, TIME=$time");
+
+      setState(() {
+        latestMessage = "Accelerometer: State=$state, Time=$timeAcc";
+      });
+      return;
+    }
+
+    // Try to match the detailed format if simple format fails
+    Match? detailedMatch = detailedRegex.firstMatch(payload);
+
+    if (detailedMatch != null) {
+       ax = double.parse(detailedMatch.group(1)!);
+       ay = double.parse(detailedMatch.group(2)!);
+       az = double.parse(detailedMatch.group(3)!);
+       gx = double.parse(detailedMatch.group(4)!);
+       gy = double.parse(detailedMatch.group(5)!);
+       gz = double.parse(detailedMatch.group(6)!);
+       anx = double.parse(detailedMatch.group(7)!);
+       any = double.parse(detailedMatch.group(8)!);
+       anz = double.parse(detailedMatch.group(9)!);
+       mag = double.parse(detailedMatch.group(10)!);
+       actMag = double.parse(detailedMatch.group(11)!);
+       noise = double.parse(detailedMatch.group(12)!);
+       state = detailedMatch.group(13)!;
+       timeAcc = detailedMatch.group(14)!;
+
+      print("Parsed Detailed Accelerometer Data:");
+      print("AX=$ax, AY=$ay, AZ=$az");
+      print("GX=$gx, GY=$gy, GZ=$gz");
+      print("ANX=$anx, ANY=$any, ANZ=$anz");
+      print("MAG=$mag, ACTMAG=$actMag, NOISE=$noise");
+      print("STATE=$state, TIME=$timeAcc");
+
+      setState(() {
+        latestMessage = "Accelerometer: AX=$ax, AY=$ay, AZ=$az, GX=$gx, GY=$gy, GZ=$gz, ANX=$anx, ANY=$any, ANZ=$anz, MAG=$mag, ACTMAG=$actMag, NOISE=$noise, STATE=$state, TIME=$timeAcc";
+      });
+      return;
+    }
+
+    print("Error: Unrecognized accelerometer data format");
+  } catch (e) {
+    print("Error parsing accelerometer data: $e");
+  }
+}
+
+
+  void _parseEventData(String payload)
+  {
+    
+  }
+
+void _updateMarkerPosition(String id, LatLng newPosition) {
+  final marker = _markers[id];
+  if (marker != null) {
+    final updatedMarker = marker.copyWith(
+      positionParam: newPosition,
+    );
+    setState(() {
+      _markers[id] = updatedMarker;
+    });
+  }
+}
   void _parseGPSData(String payload) {
     try {
       RegExp regex = RegExp(
-        r'LAT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*LONG\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ALT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*SPEED\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*SAT\s*:\s*([0-9]+),\s*TIME\s*:\s*([0-9:]+)', 
+        r'LAT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*LON\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ALT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*SPD\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*SAT\s*:\s*([0-9]+),\s*TIME\s*:\s*([0-9:]+)',
+
         caseSensitive: false)
         ;
       Match? match = regex.firstMatch(payload);
@@ -147,6 +256,14 @@ void _listenToMessages() {
           speed = double.parse(match.group(4)!);
           satellites = int.parse(match.group(5)!);
           time = match.group(6)!;
+
+          LatLng newLocation = LatLng(latitude, longitude);//update marker position on map
+          if(_markers.isEmpty){
+            addMarker(widget.petName, newLocation, widget.petImageUrl);//add pet marker for first time
+            mapController.animateCamera(CameraUpdate.newLatLng(newLocation));//focus on marker
+          }else{
+            _updateMarkerPosition(widget.petName,newLocation);
+          }
         });
       }
         if (geofenceManager.checkIfOutside(latitude, longitude)) {
@@ -329,6 +446,8 @@ void _connectToWebSocket() {
     try {
         await client!.connect("Iuli25", "Iuli369147");
         client!.subscribe("gps/tracker", MqttQos.atMostOnce);
+        client!.subscribe("accel/tracker", MqttQos.atMostOnce);
+        client!.subscribe("event/tracker", MqttQos.atMostOnce);
         _listenToMessages(); // Start listening to messages
         setState(() {}); // Update UI instantly after connecting
         print("Connected to MQTT: $broker");
@@ -349,6 +468,22 @@ void dispose() {
   wsChannel?.sink.close();
   client?.disconnect();
   super.dispose();
+}
+
+void _centerToPetMarker() {
+  if (latitude != 0.0 && longitude != 0.0) {
+    LatLng petLocation = LatLng(latitude, longitude);
+    mapController.animateCamera(CameraUpdate.newLatLng(petLocation));
+    print("Centered to pet at: $latitude, $longitude");
+  } else {
+    print("Pet location not available yet.");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Pet location not available yet."),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
 }
 
   @override
@@ -398,7 +533,7 @@ void dispose() {
       initialCameraPosition: CameraPosition(target: initialLocation, zoom: 14),
       onMapCreated: (controller) {
         mapController = controller;
-        addMarker('test', initialLocation, widget.petImageUrl);
+        //addMarker('test', initialLocation, widget.petImageUrl);
       },
       markers: _markers.values.toSet(),
       onTap: (LatLng tappedPoint) {
@@ -425,9 +560,23 @@ void dispose() {
     heroTag: 'center_to_pet',
     child: Icon(Icons.my_location,color: const ui.Color.fromARGB(255, 115, 115, 115),),
     onPressed: () {
-      mapController.animateCamera(CameraUpdate.newLatLng(
-        initialLocation,
-      ));
+      _centerToPetMarker();
+    },
+  ),
+),
+
+ Positioned(
+  bottom: 100,
+  left: 16,
+  child: FloatingActionButton(
+    backgroundColor: ui.Color.fromARGB(255, 255, 255, 255),
+    shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+              ),
+    heroTag: 'updates/messages',
+    child: Icon(Icons.message,color: const ui.Color.fromARGB(255, 115, 115, 115),),
+    onPressed: () {
+      
     },
   ),
 ),
@@ -581,8 +730,8 @@ void addMarker(String id, LatLng location, String imageUrl) async {
     },
   );
 
-  _markers[id] = marker;
-  setState(() {}); // Refresh UI to update the marker
+
+  setState(() {  _markers[id] = marker;}); // Refresh UI to update the marker
 }
 
 void _showRadiusSlider() {
