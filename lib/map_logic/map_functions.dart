@@ -81,7 +81,7 @@ class MapFunctions {
                       onConfirm();
                       Navigator.pop(context);
                     },
-                    style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Color(0xFF3CD6C1))),
+                    style: ButtonStyle(backgroundColor: WidgetStateProperty.all(Color(0xFF3CD6C1))),
                     child: Icon(Icons.check,color: Colors.white,),
                   )
                 ],

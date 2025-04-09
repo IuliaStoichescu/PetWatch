@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pet_watch/login_signin/auth_page.dart';
 import 'package:pet_watch/login_signin/services/storage_service.dart';
+import 'package:pet_watch/map_logic/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pet_watch/home_page.dart';
@@ -10,6 +11,7 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // ✅ Ensure async code runs before UI
+  NotificationService().initNotification();
   await Firebase.initializeApp(
    options: DefaultFirebaseOptions.currentPlatform,
   );

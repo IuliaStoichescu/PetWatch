@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
-import 'dart:typed_data';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -12,6 +10,9 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';  // Internet status detection
 import 'package:pet_watch/map_logic/geofence_manager.dart';
 import 'package:pet_watch/map_logic/map_functions.dart';
+import 'package:pet_watch/map_logic/services/custom-notification.dart';
+import 'package:pet_watch/map_logic/services/notification_service.dart';
+import 'package:pet_watch/map_logic/widgets/notifications_list_page.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -19,13 +20,15 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 class MapPage extends StatefulWidget {
   final String petName;
   final String petImageUrl;
-  const MapPage({Key? key, required this.petName, required this.petImageUrl}) : super(key: key);
+  const MapPage({super.key, required this.petName, required this.petImageUrl});
 
   @override
   State<MapPage> createState() => _MapPageState();
 }
 
 class _MapPageState extends State<MapPage> {
+  List<CustomNotification> notifications = [];
+
   MqttServerClient? client;
 
   WebSocketChannel? wsChannel;
@@ -51,6 +54,22 @@ class _MapPageState extends State<MapPage> {
   bool canConnect = true;
   final GeofenceManager geofenceManager = GeofenceManager();
   bool isSettingGeofence = false;
+  bool detailedData = false;
+  final notificationService = NotificationService();
+
+  double eventLatitude = 0.0;
+  double eventLongitude = 0.0;
+  String eventTime ="";
+  String eventType ="";
+
+  String? notifTitle;
+  String? notifBody;
+  String? notifTime;
+  String? notifImage;
+
+  String? lastNotifiedState;
+  DateTime? lastNotificationTime;
+  Duration stateRepeatInterval = Duration(minutes: 10); // adjust as needed
 
   double ax = 0.0;
   double ay = 0.0;
@@ -66,6 +85,87 @@ class _MapPageState extends State<MapPage> {
   double noise = 0.0;
   String state = "UNKNOWN";
   String timeAcc = "00:00:00";
+
+  CustomNotification buildNotification({
+  required String source, // "accel" or "event"
+  required String value,
+  required String time,
+}) {
+  String title = "Activity Alert";
+  String body = "";
+
+  final rand = Random();
+  final String upperValue = value.toUpperCase();
+
+  List<String> options;
+
+  switch (upperValue) {
+    case "SLEEP":
+      options = [
+        "😴 Your pet is snoozing peacefully.",
+        "😌 Nap time! Your buddy is asleep.",
+        "🌙 A well-deserved rest for your pet.",
+        "💤 Looks like a deep sleep going on!",
+        "🐾 Resting mode activated.",
+      ];
+      break;
+
+    case "WALK":
+      options = [
+        "🚶‍♂️ Your pet is going for a walk.",
+        "🐕 Strolling around like a champ!",
+        "🐾 A casual walk detected.",
+        "🦴 Exploring the area step by step.",
+        "😎 Your pet is on the move.",
+      ];
+      break;
+
+    case "RUN":
+      options = [
+        "🏃 Your pet is running full speed!",
+        "🐶 Zoomies activated!",
+        "💨 High energy detected!",
+        "🏞️ On a wild run through the terrain.",
+        "⚡ Sprint mode enabled!",
+      ];
+      break;
+
+    case "FALL":
+      title = "⚠️ Fall Detected!";
+      options = [
+        "🪨 Your pet may have fallen.",
+        "🚨 Sudden drop in activity. Check in!",
+        "🐾 Fall alert triggered!",
+        "😟 Your buddy might have slipped.",
+        "📉 Acceleration indicates a fall.",
+      ];
+      break;
+
+    case "IMPACT":
+      title = "💥 Impact Detected!";
+      options = [
+        "💢 A strong impact has been recorded.",
+        "🚨 Something just hit hard!",
+        "🐾 Impact alert: sudden motion spike!",
+        "🧱 Pet experienced a jolt!",
+        "⚠️ High-force movement detected.",
+      ];
+      break;
+
+    default:
+      options = ["Activity: $value"];
+      break;
+  }
+
+  body = options[rand.nextInt(options.length)];
+
+  return CustomNotification(
+    title: title,
+    body: body,
+    imageUrl: widget.petImageUrl,
+    time: time,
+  );
+}
 
   void resetCoords()
   {
@@ -157,62 +257,98 @@ void _listenToMessages() {
 
   void _parseAccelData(String payload) {
   try {
-    // Regex for the first simple format: State and Time only
-    RegExp simpleRegex = RegExp(
-      r'(\w+),TIME\s*:\s*([0-9:]+)',
-      caseSensitive: false,
-    );
-
     // Regex for the detailed format with accelerometer, gyroscope, and angle data
     RegExp detailedRegex = RegExp(
-      r'AX\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*AY\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*AZ\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*GX\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*GY\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*GZ\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ANX\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ANY\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ANZ\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*MAG\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ACTMAG\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*NOISE\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*STATE\s*:\s*(\w+),\s*TIME\s*:\s*([0-9:]+)',
+      r'AX\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*AY\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*AZ\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*GX\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*GY\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*GZ\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ANX\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ANY\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ANZ\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*MAG\s*:\s*([-+]?[0-9]*\.?[0-9]+)',
       caseSensitive: false,
     );
 
-    // Try to match the simple format first
-    Match? simpleMatch = simpleRegex.firstMatch(payload);
+    // Try to match the detailed format first
+    Match? detailedMatch = detailedRegex.firstMatch(payload);
 
-    if (simpleMatch != null) {
-      state = simpleMatch.group(1)!;
-       timeAcc = simpleMatch.group(2)!;
+    if (detailedMatch != null) {
+      ax = double.parse(detailedMatch.group(1)!);
+      ay = double.parse(detailedMatch.group(2)!);
+      az = double.parse(detailedMatch.group(3)!);
+      gx = double.parse(detailedMatch.group(4)!);
+      gy = double.parse(detailedMatch.group(5)!);
+      gz = double.parse(detailedMatch.group(6)!);
+      anx = double.parse(detailedMatch.group(7)!);
+      any = double.parse(detailedMatch.group(8)!);
+      anz = double.parse(detailedMatch.group(9)!);
+      mag = double.parse(detailedMatch.group(10)!);
+      
+      // Try to extract ACTMAG if it exists
+      RegExp actMagRegex = RegExp(r'ACTMAG\s*:\s*([-+]?[0-9]*\.?[0-9]+)', caseSensitive: false);
+      Match? actMagMatch = actMagRegex.firstMatch(payload);
+      if (actMagMatch != null) {
+        actMag = double.parse(actMagMatch.group(1)!);
+      }
 
-      print("Parsed Simple Accelerometer Data: STATE=$state, TIME=$time");
+      // Look for optional fields
+      RegExp stateTimeRegex = RegExp(r'STATE\s*:\s*(\w+),\s*TIME\s*:\s*([0-9:]+)', caseSensitive: false);
+      Match? stateTimeMatch = stateTimeRegex.firstMatch(payload);
+      if (stateTimeMatch != null) {
+        state = stateTimeMatch.group(1)!;
+        timeAcc = stateTimeMatch.group(2)!;
+      }
+
+      RegExp noiseRegex = RegExp(r'NOISE\s*:\s*([-+]?[0-9]*\.?[0-9]+)', caseSensitive: false);
+      Match? noiseMatch = noiseRegex.firstMatch(payload);
+      if (noiseMatch != null) {
+        noise = double.parse(noiseMatch.group(1)!);
+      }
 
       setState(() {
-        latestMessage = "Accelerometer: State=$state, Time=$timeAcc";
+        detailedData = true;
+        latestMessage = "Accelerometer: AX=$ax, AY=$ay, AZ=$az, MAG=$mag";
       });
       return;
     }
 
-    // Try to match the detailed format if simple format fails
-    Match? detailedMatch = detailedRegex.firstMatch(payload);
-
-    if (detailedMatch != null) {
-       ax = double.parse(detailedMatch.group(1)!);
-       ay = double.parse(detailedMatch.group(2)!);
-       az = double.parse(detailedMatch.group(3)!);
-       gx = double.parse(detailedMatch.group(4)!);
-       gy = double.parse(detailedMatch.group(5)!);
-       gz = double.parse(detailedMatch.group(6)!);
-       anx = double.parse(detailedMatch.group(7)!);
-       any = double.parse(detailedMatch.group(8)!);
-       anz = double.parse(detailedMatch.group(9)!);
-       mag = double.parse(detailedMatch.group(10)!);
-       actMag = double.parse(detailedMatch.group(11)!);
-       noise = double.parse(detailedMatch.group(12)!);
-       state = detailedMatch.group(13)!;
-       timeAcc = detailedMatch.group(14)!;
-
-      print("Parsed Detailed Accelerometer Data:");
-      print("AX=$ax, AY=$ay, AZ=$az");
-      print("GX=$gx, GY=$gy, GZ=$gz");
-      print("ANX=$anx, ANY=$any, ANZ=$anz");
-      print("MAG=$mag, ACTMAG=$actMag, NOISE=$noise");
-      print("STATE=$state, TIME=$timeAcc");
-
+    // If detailed didn't match, try simple format (just state and time)
+    RegExp simpleRegex = RegExp(
+      r'(\w+),TIME\s*:\s*([0-9:]+)',
+      caseSensitive: false,
+    );
+    
+    Match? simpleMatch = simpleRegex.firstMatch(payload);
+    if (simpleMatch != null) {
+      state = simpleMatch.group(1)!;
+      timeAcc = simpleMatch.group(2)!;
+      
       setState(() {
-        latestMessage = "Accelerometer: AX=$ax, AY=$ay, AZ=$az, GX=$gx, GY=$gy, GZ=$gz, ANX=$anx, ANY=$any, ANZ=$anz, MAG=$mag, ACTMAG=$actMag, NOISE=$noise, STATE=$state, TIME=$timeAcc";
+        detailedData = false;
+        latestMessage = "Accelerometer: State=$state, Time=$timeAcc";
       });
+
+      String currentState = state.toUpperCase();
+            DateTime now = DateTime.now();
+
+            bool shouldNotify = false;
+
+            if (currentState != lastNotifiedState) {
+              shouldNotify = true;
+            } else if (lastNotificationTime == null ||
+                now.difference(lastNotificationTime!) >= stateRepeatInterval) {
+              shouldNotify = true;
+            }
+
+            if (["SLEEP", "WALK", "RUN"].contains(currentState) && shouldNotify) {
+              CustomNotification notif = buildNotification(
+                source: "accel",
+                value: currentState,
+                time: timeAcc,
+              );
+
+              setState(() {
+                notifications.add(notif);
+                lastNotifiedState = currentState;
+                lastNotificationTime = now;
+              });
+
+              notificationService.showCustomNotification(notif);
+            }
       return;
     }
 
@@ -222,11 +358,43 @@ void _listenToMessages() {
   }
 }
 
+ void _parseEventData(String payload) {
+  try {
+    RegExp regex = RegExp(
+      r'TYPE\s*:\s*(\w+),\s*LAT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*LON\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*TIME\s*:\s*([0-9:]+)',
+      caseSensitive: false,
+    );
 
-  void _parseEventData(String payload)
-  {
-    
+    Match? match = regex.firstMatch(payload);
+    if (match != null) {
+      setState(() {
+        eventType = match.group(1)!;
+        eventLatitude = double.parse(match.group(2)!);
+        eventLongitude = double.parse(match.group(3)!);
+        eventTime = match.group(4)!;
+
+        notifTitle = "Event detected";
+        notifBody = "Your pet triggered a '$eventType' event.";
+        notifImage = widget.petImageUrl;
+        notifTime = eventTime;
+      });
+
+      if (["FALL", "IMPACT"].contains(eventType.toUpperCase())) {
+      CustomNotification notif = buildNotification(source: "event", value: eventType, time: eventTime);
+      setState(() {
+        notifications.add(notif);
+      });
+      notificationService.showCustomNotification(notif);
+    }
+
+      print("Parsed Event and showed notification.");
+    }
+  } catch (e) {
+    print("Error parsing event data: $e");
   }
+}
+
+
 
 void _updateMarkerPosition(String id, LatLng newPosition) {
   final marker = _markers[id];
@@ -345,13 +513,33 @@ void _showGPSCoords(BuildContext context) {
 
                   Text("GPS Information", style: TextStyle(fontWeight: FontWeight.bold)),
                   Divider(),
-                  Text("Latitude: $latitude"),
-                  Text("Longitude: $longitude"),
-                  Text("Altitude: $altitude m"),
-                  Text("Speed: $speed m/s"),
-                  Text("Satellites: $satellites"),
-                  Text("Time: $time"),
+                  if(latitude==0.0 && longitude==0.0)...[
+                    Text("⚠️  Gps data not recorded yet!"),
+                    Text("💡Try getting your pet outside")
+                  ]else...[
+                         Text("Latitude: $latitude"),
+                        Text("Longitude: $longitude"),
+                        Text("Altitude: $altitude m"),
+                        Text("Speed: $speed m/s"),
+                        Text("Satellites: $satellites"),
+                        Text("Time: $time"),
+                  ],              
                   SizedBox(height: 5),
+                  Text("Accelometer Information", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Divider(),
+                  if (detailedData) ...[
+                    Text("Acceleration: AX: $ax, AY: $ay, AZ: $az"),
+                    Text("Gyroscope: GX: $gx, GY: $gy, GZ: $gz"),
+                    Text("Angle: ANX: $anx, ANY: $any, ANZ: $anz"),
+                    Text("Magnitude: $mag"),
+                    if (actMag != 0.0) Text("Active Magnitude: $actMag"),
+                    if (noise != 0.0) Text("Noise: $noise"),
+                    Text("State: $state"),
+                    Text("Time: $timeAcc"),
+                  ] else ...[
+                    Text("State: $state"),
+                    Text("Time: $timeAcc"),
+                  ],
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -489,7 +677,7 @@ void _centerToPetMarker() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-  appBar: PreferredSize(
+    appBar: PreferredSize(
     preferredSize: Size.fromHeight(60),
     child: Container(
       decoration: BoxDecoration(
@@ -549,7 +737,7 @@ void _centerToPetMarker() {
   }
 },
     ),
-    Positioned(
+  Positioned(
   bottom: 16,
   right: 16,
   child: FloatingActionButton(
@@ -576,8 +764,14 @@ void _centerToPetMarker() {
     heroTag: 'updates/messages',
     child: Icon(Icons.message,color: const ui.Color.fromARGB(255, 115, 115, 115),),
     onPressed: () {
-      
-    },
+ Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => NotificationListPage(notifications: notifications),
+    ),
+  );
+},
+
   ),
 ),
 
@@ -671,8 +865,8 @@ Positioned(
                     selectedMarkerId = null;
                   });
                 },
-                child: Text("Close"),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.purple),
+                child: Text("Close"),
               ),
             ],
           ),
