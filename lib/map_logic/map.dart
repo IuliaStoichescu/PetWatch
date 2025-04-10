@@ -1,13 +1,16 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animarker/flutter_map_marker_animation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';  // Internet status detection
+import 'package:pet_watch/map_logic/services/storage_service.dart';
 import 'package:pet_watch/map_logic/geofence_manager.dart';
 import 'package:pet_watch/map_logic/map_functions.dart';
 import 'package:pet_watch/map_logic/services/custom-notification.dart';
@@ -15,7 +18,7 @@ import 'package:pet_watch/map_logic/services/notification_service.dart';
 import 'package:pet_watch/map_logic/widgets/notifications_list_page.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-
+import 'dart:convert';
 
 class MapPage extends StatefulWidget {
   final String petName;
@@ -28,6 +31,11 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> {
   List<CustomNotification> notifications = [];
+
+  List<LatLng> petPath = [];
+  final Map<PolylineId, Polyline> _polylines = {};
+  final storageService = StorageService();
+
 
   MqttServerClient? client;
 
@@ -57,6 +65,8 @@ class _MapPageState extends State<MapPage> {
   bool detailedData = false;
   final notificationService = NotificationService();
 
+  final controller = Completer<GoogleMapController>();
+
   double eventLatitude = 0.0;
   double eventLongitude = 0.0;
   String eventTime ="";
@@ -70,6 +80,10 @@ class _MapPageState extends State<MapPage> {
   String? lastNotifiedState;
   DateTime? lastNotificationTime;
   Duration stateRepeatInterval = Duration(minutes: 10); // adjust as needed
+
+  Map<String, dynamic>? currentWeather;
+  DateTime? lastWeatherFetch;
+
 
   double ax = 0.0;
   double ay = 0.0;
@@ -166,7 +180,23 @@ class _MapPageState extends State<MapPage> {
     time: time,
   );
 }
+ Future<Map<String, dynamic>?> fetchWeather(double lat, double lon) async {
+  final apiKey = '35164c34f69748ee990103832251004';
+  final url = 'https://api.weatherapi.com/v1/current.json?key=$apiKey&q=$lat,$lon';
 
+   try {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      print("WeatherAPI error: ${response.statusCode} - ${response.body}");
+    }
+  } catch (e) {
+    print("Weather fetch error: $e");
+  }
+
+  return null;
+}
   void resetCoords()
   {
    latitude = 0.0;
@@ -184,7 +214,24 @@ class _MapPageState extends State<MapPage> {
     _connectToMQTT();
     decideConnectionStrategy();
     geofenceManager.loadGeofence(widget.petName);
+    _loadStoredData(); 
   }
+
+  Future<void> _loadStoredData() async {
+ final loadedPath = await storageService.loadPolyline(widget.petName);
+final loadedNotifications = await storageService.loadNotifications(widget.petName);
+
+  setState(() {
+    if (loadedPath.isNotEmpty) {
+      petPath = loadedPath;
+      _updatePolyline();
+    }
+    if (loadedNotifications.isNotEmpty) {
+      notifications = loadedNotifications;
+    }
+  });
+}
+
 Future<bool> espHasInternet() async {
   try {
     final response = await http.get(Uri.parse('http://192.168.4.1/status')).timeout(Duration(seconds: 2));
@@ -255,7 +302,7 @@ void _listenToMessages() {
     });
   }
 
-  void _parseAccelData(String payload) {
+  void _parseAccelData(String payload) async{
   try {
     // Regex for the detailed format with accelerometer, gyroscope, and angle data
     RegExp detailedRegex = RegExp(
@@ -334,7 +381,8 @@ void _listenToMessages() {
               shouldNotify = true;
             }
 
-            if (["SLEEP", "WALK", "RUN"].contains(currentState) && shouldNotify) {
+           if (["SLEEP", "WALK", "RUN"].contains(currentState)) {
+            if (currentState != lastNotifiedState) {
               CustomNotification notif = buildNotification(
                 source: "accel",
                 value: currentState,
@@ -344,11 +392,13 @@ void _listenToMessages() {
               setState(() {
                 notifications.add(notif);
                 lastNotifiedState = currentState;
-                lastNotificationTime = now;
               });
 
+              await storageService.saveNotifications(widget.petName, notifications);
               notificationService.showCustomNotification(notif);
             }
+          }
+
       return;
     }
 
@@ -358,7 +408,7 @@ void _listenToMessages() {
   }
 }
 
- void _parseEventData(String payload) {
+ void _parseEventData(String payload) async{
   try {
     RegExp regex = RegExp(
       r'TYPE\s*:\s*(\w+),\s*LAT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*LON\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*TIME\s*:\s*([0-9:]+)',
@@ -384,6 +434,7 @@ void _listenToMessages() {
       setState(() {
         notifications.add(notif);
       });
+      await storageService.saveNotifications(widget.petName, notifications);
       notificationService.showCustomNotification(notif);
     }
 
@@ -407,41 +458,95 @@ void _updateMarkerPosition(String id, LatLng newPosition) {
     });
   }
 }
-  void _parseGPSData(String payload) {
-    try {
-      RegExp regex = RegExp(
-        r'LAT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*LON\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ALT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*SPD\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*SAT\s*:\s*([0-9]+),\s*TIME\s*:\s*([0-9:]+)',
 
-        caseSensitive: false)
-        ;
-      Match? match = regex.firstMatch(payload);
+void _updatePolyline() {
+  final polylineId = PolylineId("pet_path");
 
-      if (match != null) {
-        setState(() {
-          latitude = double.parse(match.group(1)!);
-          longitude = double.parse(match.group(2)!);
-          altitude = double.parse(match.group(3)!);
-          speed = double.parse(match.group(4)!);
-          satellites = int.parse(match.group(5)!);
-          time = match.group(6)!;
+  final polyline = Polyline(
+    polylineId: polylineId,
+    color: const ui.Color.fromARGB(255, 67, 166, 237), // You can change color or add gradient logic
+    width: 5,
+    points: petPath,
+    patterns: [PatternItem.dash(20), PatternItem.gap(10)], // dashed look
+    jointType: JointType.round,
+    endCap: Cap.roundCap,
+    startCap: Cap.roundCap,
+  );
 
-          LatLng newLocation = LatLng(latitude, longitude);//update marker position on map
-          if(_markers.isEmpty){
-            addMarker(widget.petName, newLocation, widget.petImageUrl);//add pet marker for first time
-            mapController.animateCamera(CameraUpdate.newLatLng(newLocation));//focus on marker
-          }else{
-            _updateMarkerPosition(widget.petName,newLocation);
-          }
-        });
+  setState(() {
+    _polylines[polylineId] = polyline;
+  });
+}
+
+
+double _distanceBetween(LatLng a, LatLng b) {
+  final dx = a.latitude - b.latitude;
+  final dy = a.longitude - b.longitude;
+  return sqrt(dx * dx + dy * dy) * 111139; // approximate meters
+}
+
+Future<void> _parseGPSData(String payload) async {
+  try {
+    RegExp regex = RegExp(
+      r'LAT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*LON\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ALT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*SPD\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*SAT\s*:\s*([0-9]+),\s*TIME\s*:\s*([0-9:]+)',
+      caseSensitive: false,
+    );
+
+    Match? match = regex.firstMatch(payload);
+
+    if (match != null) {
+      double lat = double.parse(match.group(1)!);
+      double lon = double.parse(match.group(2)!);
+      LatLng newLocation = LatLng(lat, lon);
+
+      bool addedToPath = false;
+
+      setState(() {
+        latitude = lat;
+        longitude = lon;
+        altitude = double.parse(match.group(3)!);
+        speed = double.parse(match.group(4)!);
+        satellites = int.parse(match.group(5)!);
+        time = match.group(6)!;
+
+        // Update polyline path if moved enough
+        if (petPath.isEmpty || _distanceBetween(petPath.last, newLocation) > 5) {
+          petPath.add(newLocation);
+          _updatePolyline();
+          addedToPath = true; // track it outside
+        }
+
+        // Move marker
+        if (_markers.isEmpty) {
+          addMarker(widget.petName, newLocation, widget.petImageUrl);
+          mapController.animateCamera(CameraUpdate.newLatLng(newLocation));
+        } else {
+          _updateMarkerPosition(widget.petName, newLocation);
+        }
+      });
+
+      final weatherData = await fetchWeather(lat, lon);
+        if (weatherData != null) {
+          setState(() {
+            currentWeather = weatherData; 
+            print("🌤️ Weather: $weatherData");
+          });
+        }
+
+      if (addedToPath) {
+       await storageService.savePolyline(widget.petName, petPath);
       }
-        if (geofenceManager.checkIfOutside(latitude, longitude)) {
-               _showGeofenceAlert();
-      }
 
-    } catch (e) {
-      print("Parse error: $e");
+      if (geofenceManager.checkIfOutside(latitude, longitude)) {
+        _showGeofenceAlert();
+      }
     }
+  } catch (e) {
+    print("Parse error: $e");
   }
+}
+
+
 
 void _showGeofenceAlert()
 {
@@ -449,7 +554,7 @@ void _showGeofenceAlert()
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text("🚨 Geofence Alert"),
-      content: Text("Animal has exited the safe zone!"),
+      content: Text("Animal has exited the safe zone at $time!"),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
@@ -715,28 +820,74 @@ void _centerToPetMarker() {
   ),
   body: Stack(
   children: [
-    GoogleMap(
-      myLocationButtonEnabled: false,
-      circles: geofenceManager.geofenceCircle != null ? {geofenceManager.geofenceCircle!} : {},
-      initialCameraPosition: CameraPosition(target: initialLocation, zoom: 14),
-      onMapCreated: (controller) {
-        mapController = controller;
-        //addMarker('test', initialLocation, widget.petImageUrl);
+    Animarker(
+      mapId: controller.future.then<int>((value) => value.mapId),// assign this in onMapCreated
+      curve: Curves.easeInOut,
+      duration: Duration(milliseconds: 800),
+      markers: Set<Marker>.of(_markers.values),
+      child: GoogleMap(
+        polylines: Set<Polyline>.of(_polylines.values),
+        myLocationButtonEnabled: false,
+        circles: geofenceManager.geofenceCircle != null ? {geofenceManager.geofenceCircle!} : {},
+        initialCameraPosition: CameraPosition(target: initialLocation, zoom: 14),
+        onMapCreated: (controller) {
+          mapController = controller;
+          setState(() {}); 
+          //addMarker('test', initialLocation, widget.petImageUrl);
+        },
+        markers: _markers.values.toSet(),
+        onTap: (LatLng tappedPoint) {
+        if (isSettingGeofence) {
+      setState(() {
+        geofenceManager.updateCenter(tappedPoint);
+      });
+      _showRadiusSlider(); // slider de radius
+        } else {
+      setState(() {
+        selectedMarkerId = null;
+      });
+        }
       },
-      markers: _markers.values.toSet(),
-      onTap: (LatLng tappedPoint) {
-  if (isSettingGeofence) {
-    setState(() {
-      geofenceManager.updateCenter(tappedPoint);
-    });
-    _showRadiusSlider(); // slider de radius
-  } else {
-    setState(() {
-      selectedMarkerId = null;
-    });
-  }
-},
+      ),
     ),
+     if (currentWeather != null)
+  Positioned(
+    top: 30,
+    right: 16,
+    child: Container(
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.network(
+            "https:${currentWeather!['current']['condition']['icon']}",
+            width: 40,
+            errorBuilder: (context, error, stackTrace) => Icon(Icons.cloud_off),
+          ),
+          SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "${currentWeather!['current']['temp_c']}°C",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                currentWeather!['current']['condition']['text'],
+                style: TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  ),
+
   Positioned(
   bottom: 16,
   right: 16,

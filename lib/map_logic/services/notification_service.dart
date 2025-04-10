@@ -15,7 +15,7 @@ class NotificationService {
       return;
     }
     //for andrioid
-    const initSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initSettingsAndroid = AndroidInitializationSettings('petWatchLogo');
 
     //for ios
     const initSettingsiOS = DarwinInitializationSettings(
