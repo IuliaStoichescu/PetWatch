@@ -16,6 +16,7 @@ import 'package:pet_watch/map_logic/map_functions.dart';
 import 'package:pet_watch/map_logic/services/custom-notification.dart';
 import 'package:pet_watch/map_logic/services/notification_service.dart';
 import 'package:pet_watch/map_logic/widgets/notifications_list_page.dart';
+import 'package:pet_watch/map_logic/widgets/stat_card.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
@@ -23,7 +24,15 @@ import 'dart:convert';
 class MapPage extends StatefulWidget {
   final String petName;
   final String petImageUrl;
-  const MapPage({super.key, required this.petName, required this.petImageUrl});
+  final LatLng initialLocation;
+
+const MapPage({
+  super.key,
+  required this.petName,
+  required this.petImageUrl,
+  required this.initialLocation,
+});
+ // const MapPage({super.key, required this.petName, required this.petImageUrl});
 
   @override
   State<MapPage> createState() => _MapPageState();
@@ -42,6 +51,16 @@ class _MapPageState extends State<MapPage> {
   WebSocketChannel? wsChannel;
   StreamSubscription? wsSubscription;//pentru folosirea WebSocket cand receptorul nu are acces la internet pt primirea datelor gps
 
+  double totalDistance = 0.0;
+
+  String? previousState;
+  int stateRepeatCount = 0;
+  DateTime? outStartTime;
+  Duration totalOutDuration = Duration.zero;
+  bool isPetHome = false;
+
+
+
   bool useCloud = true;  // Initially tries Cloud MQTT
   int retryCount = 0;    // Retry attempts counter
   String latestMessage="No incoming messages from MQTT yet";
@@ -52,7 +71,7 @@ class _MapPageState extends State<MapPage> {
   double speed = 0.0;
   int satellites = 0;
   String time = "";
-  LatLng initialLocation = LatLng(45.7235054321469, 21.250409338816176);
+ // LatLng initialLocation = LatLng(45.7235054321469, 21.250409338816176);
   late GoogleMapController mapController;
   final Map<String,Marker> _markers = {};
   Color markerColor = Colors.red;//default color
@@ -382,23 +401,29 @@ void _listenToMessages() {
             }
 
            if (["SLEEP", "WALK", "RUN"].contains(currentState)) {
-            if (currentState != lastNotifiedState) {
-              CustomNotification notif = buildNotification(
-                source: "accel",
-                value: currentState,
-                time: timeAcc,
-              );
+              if (currentState == previousState) {
+                stateRepeatCount++;
+              } else {
+                previousState = currentState;
+                stateRepeatCount = 1;
+              }
 
-              setState(() {
-                notifications.add(notif);
-                lastNotifiedState = currentState;
-              });
+              if (stateRepeatCount >= 3 && currentState != lastNotifiedState) {
+                CustomNotification notif = buildNotification(
+                  source: "accel",
+                  value: currentState,
+                  time: timeAcc,
+                );
 
-              await storageService.saveNotifications(widget.petName, notifications);
-              notificationService.showCustomNotification(notif);
+                setState(() {
+                  notifications.add(notif);
+                  lastNotifiedState = currentState;
+                });
+
+                await storageService.saveNotifications(widget.petName, notifications);
+                notificationService.showCustomNotification(notif);
+              }
             }
-          }
-
       return;
     }
 
@@ -485,6 +510,23 @@ double _distanceBetween(LatLng a, LatLng b) {
   return sqrt(dx * dx + dy * dy) * 111139; // approximate meters
 }
 
+Duration _calculateCurrentOutTime() {
+  if (outStartTime != null) {
+    return totalOutDuration + DateTime.now().difference(outStartTime!);
+  }
+  return totalOutDuration;
+}
+
+String _formatDuration(Duration duration) {
+  String twoDigits(int n) => n.toString().padLeft(2, '0');
+  final hours = twoDigits(duration.inHours);
+  final minutes = twoDigits(duration.inMinutes.remainder(60));
+  final seconds = twoDigits(duration.inSeconds.remainder(60));
+  return "$hours:$minutes:$seconds";
+}
+
+
+
 Future<void> _parseGPSData(String payload) async {
   try {
     RegExp regex = RegExp(
@@ -511,15 +553,22 @@ Future<void> _parseGPSData(String payload) async {
 
         // Update polyline path if moved enough
         if (petPath.isEmpty || _distanceBetween(petPath.last, newLocation) > 5) {
+          double distance = _distanceBetween(petPath.lastOrNull ?? newLocation, newLocation);
+          totalDistance += distance;
           petPath.add(newLocation);
           _updatePolyline();
-          addedToPath = true; // track it outside
+          addedToPath = true;
         }
+
 
         // Move marker
         if (_markers.isEmpty) {
           addMarker(widget.petName, newLocation, widget.petImageUrl);
           mapController.animateCamera(CameraUpdate.newLatLng(newLocation));
+
+          if (!isPetHome && outStartTime == null) {
+            outStartTime = DateTime.now();
+          }
         } else {
           _updateMarkerPosition(widget.petName, newLocation);
         }
@@ -628,6 +677,7 @@ void _showGPSCoords(BuildContext context) {
                         Text("Speed: $speed m/s"),
                         Text("Satellites: $satellites"),
                         Text("Time: $time"),
+                        Text("Distance walked: ${(totalDistance / 1000).toStringAsFixed(2)} km"),
                   ],              
                   SizedBox(height: 5),
                   Text("Accelometer Information", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -779,6 +829,30 @@ void _centerToPetMarker() {
   }
 }
 
+Future<void> _addHomeMarker(LatLng location) async {
+  // Option 1: Use a default marker with a different color
+  // BitmapDescriptor markerIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
+  
+  // Option 2: Create a fully custom home icon
+  BitmapDescriptor markerIcon = await BitmapDescriptor.asset(
+    ImageConfiguration(size: Size(48, 48)),
+    'assets/home_green.png',  // Add this image to your assets
+  );
+  
+  final homeMarker = Marker(
+    markerId: MarkerId('home'),
+    position: location,
+    icon: markerIcon,
+    infoWindow: InfoWindow(title: 'Home Base'),
+  );
+  
+  setState(() {
+    _markers.clear();
+    _markers['home'] = homeMarker;
+  });
+}
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -829,9 +903,21 @@ void _centerToPetMarker() {
         polylines: Set<Polyline>.of(_polylines.values),
         myLocationButtonEnabled: false,
         circles: geofenceManager.geofenceCircle != null ? {geofenceManager.geofenceCircle!} : {},
-        initialCameraPosition: CameraPosition(target: initialLocation, zoom: 14),
+        initialCameraPosition: CameraPosition(target: widget.initialLocation, zoom: 14),
         onMapCreated: (controller) {
           mapController = controller;
+          this.controller.complete(controller); 
+          _addHomeMarker(widget.initialLocation);
+          Future.delayed(Duration(milliseconds: 300), () {
+          mapController.animateCamera(
+            CameraUpdate.newCameraPosition(
+              CameraPosition(
+                target: widget.initialLocation,
+                zoom: 14,
+              ),
+            ),
+          );
+        });
           setState(() {}); 
           //addMarker('test', initialLocation, widget.petImageUrl);
         },
@@ -848,6 +934,41 @@ void _centerToPetMarker() {
       });
         }
       },
+      ),
+    ),
+    Positioned(
+      top: 30,
+      left: 16,
+      child: Container(
+        padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+      ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                StatCard(
+                title: "Distance",
+                value: "${(totalDistance / 1000).toStringAsFixed(2)} km",
+                icon: Icons.map,
+                color: Colors.blue,
+              ),
+            SizedBox(width: 10), // spacing between cards
+                StatCard(
+                  title: "Time Out",
+                  value: _formatDuration(_calculateCurrentOutTime()),
+                  icon: Icons.timer,
+                  color: Colors.deepPurple,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     ),
      if (currentWeather != null)
@@ -887,7 +1008,25 @@ void _centerToPetMarker() {
       ),
     ),
   ),
-
+   Positioned(
+    bottom: 16,
+    right: 150,
+     child: FloatingActionButton.extended(
+                heroTag: 'home_button',
+                backgroundColor: Colors.white,
+                label: Text("I'm Home", style: TextStyle(color: Colors.black)),
+                icon: Icon(Icons.home, color: Colors.black),
+                onPressed: () {
+                  if (outStartTime != null) {
+                    setState(() {
+                      totalOutDuration += DateTime.now().difference(outStartTime!);
+                      outStartTime = null;
+                      isPetHome = true;
+                    });
+                  }
+                },
+              ),
+   ),
   Positioned(
   bottom: 16,
   right: 16,

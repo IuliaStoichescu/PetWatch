@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lottie/lottie.dart';
 import 'package:pet_watch/map_logic/map.dart';
+import 'package:pet_watch/set_home_location.dart';
 
 class PetList extends StatefulWidget {
   const PetList({super.key});
@@ -83,6 +85,25 @@ class _PetCardState extends State<PetCard> {
   bool isTrackingOn = false;
   final User user = FirebaseAuth.instance.currentUser!;
 
+   Future<LatLng?> getHomeLocation(String userId, String petId) async {
+  final doc = await FirebaseFirestore.instance
+      .collection("users")
+      .doc(userId)
+      .collection("pets")
+      .doc(petId)
+      .collection("pet_info")
+      .doc("home")
+      .get();
+
+  if (doc.exists) {
+    final data = doc.data();
+    if (data != null && data.containsKey('lat') && data.containsKey('lng')) {
+      return LatLng(data['lat'], data['lng']);
+    }
+  }
+  return null;
+}
+
   @override
   Widget build(BuildContext context) {
     String petName = widget.petDetails["name"] ?? "Unnamed Pet";
@@ -158,15 +179,36 @@ class _PetCardState extends State<PetCard> {
                     ),
                     if (isTrackingOn)
                       GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => MapPage(
-                              petName: widget.petDetails["name"] ?? "Unnamed Pet",
-                              petImageUrl: widget.petDetails["imageUrl"] ?? "", // Send pet image
-                            ),),
-                            );// Navigate to map
-                        },
+                        onTap: () async {
+                            final home = await getHomeLocation(user.uid, widget.petId);
+
+                            if (home == null) {
+                              // Go to Set Home first
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SetHomeLocationPage(
+                                    petId: widget.petId,
+                                    petName: widget.petDetails["name"] ?? "Unnamed Pet",
+                                    petImageUrl: widget.petDetails["imageUrl"] ?? "",
+                                  ),
+                                ),
+                              );
+                            } else {
+                              // Home is set, go directly to MapPage
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MapPage(
+                                    petName: widget.petDetails["name"] ?? "Unnamed Pet",
+                                    petImageUrl: widget.petDetails["imageUrl"] ?? "",
+                                    initialLocation: home,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+
                         child: Icon(Icons.arrow_forward, color: Colors.black, size: 30),
                       ),
                   ],
