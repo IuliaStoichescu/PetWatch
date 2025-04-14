@@ -79,6 +79,70 @@ class StorageService {
     }).toList();
   }
 
+  Future<void> saveSessionState(String petId, {
+  required List<LatLng> polyline,
+  required double distance,
+  required String? outStartIso,
+  required bool isPetHome,
+}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final prefix = '${petId}_session';
+
+  await prefs.setStringList('${prefix}_polyline', polyline.map((p) => jsonEncode({'lat': p.latitude, 'lon': p.longitude})).toList());
+  await prefs.setDouble('${prefix}_distance', distance);
+  if (outStartIso != null) await prefs.setString('${prefix}_start', outStartIso);
+  await prefs.setBool('${prefix}_home', isPetHome);
+}
+
+Future<Map<String, dynamic>> loadSessionState(String petId) async {
+  final prefs = await SharedPreferences.getInstance();
+  final prefix = '${petId}_session';
+
+  List<LatLng> polyline = (prefs.getStringList('${prefix}_polyline') ?? []).map((j) {
+    final p = jsonDecode(j);
+    return LatLng(p['lat'], p['lon']);
+  }).toList();
+
+  double distance = prefs.getDouble('${prefix}_distance') ?? 0.0;
+  String? outStartIso = prefs.getString('${prefix}_start');
+  bool isPetHome = prefs.getBool('${prefix}_home') ?? true;
+  DateTime? outStart = outStartIso != null ? DateTime.tryParse(outStartIso) : null;
+
+  return {
+    'polyline': polyline,
+    'distance': distance,
+    'outStartTime': outStart,
+    'isPetHome': isPetHome,
+  };
+}
+
+Future<void> clearSessionState(String petId) async {
+  final prefs = await SharedPreferences.getInstance();
+  final prefix = '${petId}_session';
+
+  await prefs.remove('${prefix}_polyline');
+  await prefs.remove('${prefix}_distance');
+  await prefs.remove('${prefix}_start');
+  await prefs.remove('${prefix}_home');
+}
+
+Future<void> saveLastKnownMarker(String petId, LatLng position) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setDouble('${petId}_last_lat', position.latitude);
+  await prefs.setDouble('${petId}_last_lng', position.longitude);
+}
+
+Future<LatLng?> loadLastKnownMarker(String petId) async {
+  final prefs = await SharedPreferences.getInstance();
+  final lat = prefs.getDouble('${petId}_last_lat');
+  final lng = prefs.getDouble('${petId}_last_lng');
+  if (lat != null && lng != null) {
+    return LatLng(lat, lng);
+  }
+  return null;
+}
+
+
   String _today() => DateTime.now().toIso8601String().substring(0, 10);
   bool _isToday(String? stored) => stored == _today();
 }

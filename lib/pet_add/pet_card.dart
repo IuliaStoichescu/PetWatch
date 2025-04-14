@@ -5,7 +5,9 @@ import 'package:getwidget/getwidget.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lottie/lottie.dart';
 import 'package:pet_watch/map_logic/map.dart';
+import 'package:pet_watch/map_logic/services/storage_service.dart';
 import 'package:pet_watch/set_home_location.dart';
+
 
 class PetList extends StatefulWidget {
   const PetList({super.key});
@@ -84,7 +86,7 @@ class PetCard extends StatefulWidget {
 class _PetCardState extends State<PetCard> {
   bool isTrackingOn = false;
   final User user = FirebaseAuth.instance.currentUser!;
-
+  final StorageService storageService = StorageService();
    Future<LatLng?> getHomeLocation(String userId, String petId) async {
   final doc = await FirebaseFirestore.instance
       .collection("users")
@@ -166,10 +168,17 @@ class _PetCardState extends State<PetCard> {
                       scale: 1.2,
                       child: Switch(
                         value: isTrackingOn,
-                        onChanged: (value) {
+                        onChanged: (value) async{
                           setState(() {
                             isTrackingOn = value;
                           });
+                           if (!value) {
+                              final storageService = StorageService();
+                              await storageService.clearSessionState(widget.petId);
+                              await storageService.savePolyline(widget.petId, []);
+                              await storageService.saveLastKnownMarker(widget.petId, LatLng(0, 0));
+                              print("🧹 Tracking turned off. Session cleared.");
+                            }
                         },
                         activeColor: Colors.green,
                         activeTrackColor: Colors.greenAccent,

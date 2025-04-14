@@ -60,7 +60,7 @@ class _MapPageState extends State<MapPage> {
   int stateRepeatCount = 0;
   DateTime? outStartTime;
   Duration totalOutDuration = Duration.zero;
-  bool isPetHome = false;
+  bool isPetHome = true;
 
   bool useCloud = true;  // Initially tries Cloud MQTT
   int retryCount = 0;    // Retry attempts counter
@@ -119,6 +119,8 @@ class _MapPageState extends State<MapPage> {
   double noise = 0.0;
   String state = "UNKNOWN";
   String timeAcc = "00:00:00";
+
+  Timer? outTimer;
 
   CustomNotification buildNotification({
   required String source, // "accel" or "event"
@@ -235,20 +237,41 @@ class _MapPageState extends State<MapPage> {
     decideConnectionStrategy();
     geofenceManager.loadGeofence(widget.petName);
     _loadStoredData(); 
+    startOutTimer(); // Start timer if outStartTime is already set
   }
 
+  void startOutTimer() {
+  outTimer?.cancel(); // Cancel any existing timer
+
+  if (outStartTime != null) {
+    outTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (mounted) setState(() {}); // Forces UI refresh every second
+    });
+  }
+}
+
+
   Future<void> _loadStoredData() async {
- final loadedPath = await storageService.loadPolyline(widget.petName);
-final loadedNotifications = await storageService.loadNotifications(widget.petName);
+  final loadedPath = await storageService.loadPolyline(widget.petName);
+  final loadedNotifications = await storageService.loadNotifications(widget.petName);
+  final sessionData = await storageService.loadSessionState(widget.petName);
+  final lastMarkerPos = await storageService.loadLastKnownMarker(widget.petName);
+    if (lastMarkerPos != null && lastMarkerPos.latitude != 0.0 && lastMarkerPos.longitude != 0.0) {
+  addMarker(widget.petName, lastMarkerPos, widget.petImageUrl);
+  latitude = lastMarkerPos.latitude;
+  longitude = lastMarkerPos.longitude;
+}
+
 
   setState(() {
-    if (loadedPath.isNotEmpty) {
-      petPath = loadedPath;
-      _updatePolyline();
-    }
-    if (loadedNotifications.isNotEmpty) {
-      notifications = loadedNotifications;
-    }
+    petPath = sessionData['polyline'];
+    totalDistance = sessionData['distance'];
+    outStartTime = sessionData['outStartTime'];
+    isPetHome = sessionData['isPetHome'];
+
+    if (petPath.isNotEmpty) _updatePolyline();
+    if (loadedNotifications.isNotEmpty) notifications = loadedNotifications;
+    
   });
 }
 
@@ -463,7 +486,7 @@ void _listenToMessages() {
  void _parseEventData(String payload) async{
   try {
     RegExp regex = RegExp(
-      r'TYPE\s*:\s*(\w+),\s*LAT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*LON\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*TIME\s*:\s*([0-9:]+)',
+  r'(?:PRIORITY:)?TYPE\s*:\s*(\w+),\s*LAT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*LON\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*TIME\s*:\s*([0-9:]+)',
       caseSensitive: false,
     );
 
@@ -568,6 +591,20 @@ Future<void> _parseGPSData(String payload) async {
       double lon = double.parse(match.group(2)!);
       LatLng newLocation = LatLng(lat, lon);
 
+       // First valid location received - make sure isPetHome is set correctly
+      if (petPath.isEmpty) {
+        double distanceFromHome = _distanceBetween(newLocation, widget.initialLocation);
+        isPetHome = distanceFromHome <= 20; // Set initial home status based on first location
+        
+        // If pet already away from home on first detection, start timer
+        if (!isPetHome && outStartTime == null) {
+          outStartTime = DateTime.now();
+          startOutTimer();
+
+          print("🏃 Pet already away from home area. Session started.");
+        }
+      }
+
       CustomNotification? notif;
       bool addedToPath = false;
 
@@ -589,9 +626,9 @@ Future<void> _parseGPSData(String payload) async {
         }
 
         // Move marker
-        if (_markers.isEmpty) {
+        if (!_markers.containsKey(widget.petName)) {
           addMarker(widget.petName, newLocation, widget.petImageUrl);
-          mapController.animateCamera(CameraUpdate.newLatLng(newLocation));
+          //mapController.animateCamera(CameraUpdate.newLatLng(newLocation));
 
           if (isPetHome && outStartTime == null) {
            double distanceFromHome = _distanceBetween(LatLng(latitude, longitude), widget.initialLocation);
@@ -609,13 +646,17 @@ Future<void> _parseGPSData(String payload) async {
               setState(() {
                 notifications.add(notif!);
               });
-              notifications.add(notif!);
+              //notifications.add(notif!);
             }           
           }
         } else {
           _updateMarkerPosition(widget.petName, newLocation);
         }
+        if (petPath.length == 1) {
+          mapController.animateCamera(CameraUpdate.newLatLng(newLocation));
+        }
       });
+      await storageService.saveLastKnownMarker(widget.petName, newLocation);
       if (notif != null) {
           await storageService.saveNotifications(widget.petName, notifications);
           notificationService.showCustomNotification(notif!);
@@ -629,8 +670,16 @@ Future<void> _parseGPSData(String payload) async {
         }
 
       if (addedToPath) {
-       await storageService.savePolyline(widget.petName, petPath);
-      }
+          await storageService.savePolyline(widget.petName, petPath);
+          await storageService.saveSessionState(
+            widget.petName,
+            polyline: petPath,
+            distance: totalDistance,
+            outStartIso: outStartTime?.toIso8601String(),
+            isPetHome: isPetHome,
+          );
+        }
+
 
       if (geofenceManager.checkIfOutside(latitude, longitude)) {
         _showGeofenceAlert();
@@ -870,6 +919,7 @@ void dispose() {
   wsSubscription?.cancel();
   wsChannel?.sink.close();
   client?.disconnect();
+  outTimer?.cancel(); 
   super.dispose();
 }
 
@@ -998,7 +1048,7 @@ Future<void> _addHomeMarker(LatLng location) async {
           setState(() {}); 
           //addMarker('test', initialLocation, widget.petImageUrl);
         },
-        markers: _markers.values.toSet(),
+      //  markers: _markers.values.toSet(),
         onTap: (LatLng tappedPoint) {
         if (isSettingGeofence) {
       setState(() {
@@ -1096,6 +1146,12 @@ Future<void> _addHomeMarker(LatLng location) async {
                 onPressed: () async {
                   if (outStartTime != null) {
                     await _saveSessionToFirebase();
+                    await storageService.clearSessionState(widget.petName);
+                    await storageService.savePolyline(widget.petName, []);
+                    await storageService.saveLastKnownMarker(widget.petName, LatLng(0, 0));
+                    await storageService.saveNotifications(widget.petName, []);
+                    
+                    outTimer?.cancel();
 
                     setState(() {
                       totalOutDuration += DateTime.now().difference(outStartTime!);
@@ -1103,10 +1159,13 @@ Future<void> _addHomeMarker(LatLng location) async {
                       isPetHome = true;
                       totalDistance = 0.0;
                       petPath.clear();
-                      _polylines.clear(); // optional: clears the visible path
+                      _polylines.clear();
+                      latitude = 0.0;
+                      longitude = 0.0;
+                      _markers.remove(widget.petName);
                     });
                   }
-                },
+                }
               ),
    ),
   Positioned(
@@ -1287,6 +1346,7 @@ void addMarker(String id, LatLng location, String imageUrl) async {
     markerId: MarkerId(id),
     position: location,
     icon: markerIcon,
+    rotation: 0.0,
     onTap: () {
       setState(() {
         selectedMarkerId = id; // Store the marker ID for info window visibility
