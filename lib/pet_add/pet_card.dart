@@ -118,6 +118,8 @@ class _PetCardState extends State<PetCard> {
     IconData genderIcon = isFemale ? Icons.female : Icons.male;
     Color genderColor = isFemale ? Colors.pinkAccent : Colors.blueAccent;
 
+    final storageService = StorageService();
+
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8),
       child: GFCard(
@@ -173,7 +175,32 @@ class _PetCardState extends State<PetCard> {
                             isTrackingOn = value;
                           });
                            if (!value) {
-                              final storageService = StorageService();
+                            try{
+                              final sessionData = await storageService.loadSessionState(widget.petId);
+                              if(sessionData['ourStartTime']!=null){
+                                final endTime = DateTime.now();
+                                final duration = endTime.difference(sessionData['ourStartTime']);
+
+                                await FirebaseFirestore.instance
+                                .collection("users")
+                                .doc(user.uid)
+                                .collection("pets")
+                                .doc(widget.petId)
+                                .collection("pet_info")
+                                .doc("data") 
+                                .collection("sessions")
+                                .add({
+                                  'start_time': sessionData['ourStartTime'].toIso8601String(),
+                                  'end_time': endTime.toIso8601String(),
+                                  'duration_seconds': duration.inSeconds,
+                                  'distance_meters': sessionData['distance'],
+                                });
+                                print("Successfully to firebase");
+                              }
+                            }catch(e){
+                              print("Error saving to firebase");
+                            }
+                             //final storageService = StorageService();
                               await storageService.clearSessionState(widget.petId);
                               await storageService.savePolyline(widget.petId, []);
                               await storageService.saveLastKnownMarker(widget.petId, LatLng(0, 0));

@@ -251,17 +251,18 @@ class _MapPageState extends State<MapPage> {
 }
 
 
-  Future<void> _loadStoredData() async {
-  final loadedPath = await storageService.loadPolyline(widget.petName);
-  final loadedNotifications = await storageService.loadNotifications(widget.petName);
-  final sessionData = await storageService.loadSessionState(widget.petName);
+Future<void> _loadStoredData() async {
+  final loadedPath = await storageService.loadPolyline(widget.petId);
+  final loadedNotifications = await storageService.loadNotifications(widget.petId);
+  final sessionData = await storageService.loadSessionState(widget.petId);
   final lastMarkerPos = await storageService.loadLastKnownMarker(widget.petName);
-    if (lastMarkerPos != null && lastMarkerPos.latitude != 0.0 && lastMarkerPos.longitude != 0.0) {
-  addMarker(widget.petName, lastMarkerPos, widget.petImageUrl);
-  latitude = lastMarkerPos.latitude;
-  longitude = lastMarkerPos.longitude;
-}
-
+  
+  // Only add marker if coordinates are valid (not 0,0)
+  if (lastMarkerPos != null && lastMarkerPos.latitude != 0.0 && lastMarkerPos.longitude != 0.0) {
+    addMarker(widget.petName, lastMarkerPos, widget.petImageUrl);
+    latitude = lastMarkerPos.latitude;
+    longitude = lastMarkerPos.longitude;
+  }
 
   setState(() {
     petPath = sessionData['polyline'];
@@ -271,14 +272,13 @@ class _MapPageState extends State<MapPage> {
 
     if (petPath.isNotEmpty) _updatePolyline();
     if (loadedNotifications.isNotEmpty) notifications = loadedNotifications;
-    
   });
 }
 
 Future<void> _saveSessionToFirebase() async {
   if (outStartTime == null) return;
-
-  final endTime = DateTime.now();
+  try{
+    final endTime = DateTime.now();
   final duration = endTime.difference(outStartTime!);
 
   await FirebaseFirestore.instance
@@ -295,9 +295,10 @@ Future<void> _saveSessionToFirebase() async {
     'duration_seconds': duration.inSeconds,
     'distance_meters': totalDistance,
   });
-
-
-  print("📦 Session saved to Firebase");
+    print("📦 Session saved to Firebase");
+  }catch(e){
+    print("Session was NOT saved to Firebase");
+  }
 }
 
 
@@ -626,7 +627,11 @@ Future<void> _parseGPSData(String payload) async {
         }
 
         // Move marker
-        if (!_markers.containsKey(widget.petName)) {
+        if(latitude == 0.0 && longitude == 0.0)
+        {
+          addMarker(widget.petName, newLocation, widget.petImageUrl);
+        }
+        else if (!_markers.containsKey(widget.petName)) {
           addMarker(widget.petName, newLocation, widget.petImageUrl);
           //mapController.animateCamera(CameraUpdate.newLatLng(newLocation));
 
@@ -1135,39 +1140,6 @@ Future<void> _addHomeMarker(LatLng location) async {
       ),
     ),
   ),
-   Positioned(
-    bottom: 16,
-    right: 150,
-     child: FloatingActionButton.extended(
-                heroTag: 'home_button',
-                backgroundColor: Colors.white,
-                label: Text("I'm Home", style: TextStyle(color: Colors.black)),
-                icon: Icon(Icons.home, color: Colors.black),
-                onPressed: () async {
-                  if (outStartTime != null) {
-                    await _saveSessionToFirebase();
-                    await storageService.clearSessionState(widget.petName);
-                    await storageService.savePolyline(widget.petName, []);
-                    await storageService.saveLastKnownMarker(widget.petName, LatLng(0, 0));
-                    await storageService.saveNotifications(widget.petName, []);
-                    
-                    outTimer?.cancel();
-
-                    setState(() {
-                      totalOutDuration += DateTime.now().difference(outStartTime!);
-                      outStartTime = null;
-                      isPetHome = true;
-                      totalDistance = 0.0;
-                      petPath.clear();
-                      _polylines.clear();
-                      latitude = 0.0;
-                      longitude = 0.0;
-                      _markers.remove(widget.petName);
-                    });
-                  }
-                }
-              ),
-   ),
   Positioned(
   bottom: 16,
   right: 16,
@@ -1303,6 +1275,40 @@ Positioned(
           ),
         ),
       ),
+       Positioned(
+    bottom: 16,
+    right: 150,
+     child: FloatingActionButton.extended(
+                heroTag: 'home_button',
+                backgroundColor: Colors.white,
+                label: Text("I'm Home", style: TextStyle(color: Colors.black)),
+                icon: Icon(Icons.home, color: Colors.black),
+                onPressed: () async {
+                  if (outStartTime != null) {
+                    await _saveSessionToFirebase();
+                    await storageService.clearSessionState(widget.petId);
+                    await storageService.savePolyline(widget.petId, []);
+                    await storageService.saveLastKnownMarker(widget.petId, LatLng(0, 0));
+                    await storageService.saveNotifications(widget.petId, []);
+                    
+                    outTimer?.cancel();
+
+                    setState(() {
+                      totalOutDuration += DateTime.now().difference(outStartTime!);
+                      outStartTime = null;
+                      isPetHome = true;
+                      totalDistance = 0.0;
+                      petPath.clear();
+                      _polylines.clear();
+                      latitude = 0.0;
+                      longitude = 0.0;
+                      _markers.remove(widget.petName);
+                    });
+                    print("Session saved!!");
+                  }
+                }
+              ),
+   ),
       Positioned(
       left: 16,
       bottom: 16,
