@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
-import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animarker/flutter_map_marker_animation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';  // Internet status detection
+import 'package:pet_watch/map_logic/help_page.dart';
 import 'package:pet_watch/map_logic/services/storage_service.dart';
 import 'package:pet_watch/map_logic/geofence_manager.dart';
 import 'package:pet_watch/map_logic/map_functions.dart';
@@ -25,9 +27,11 @@ class MapPage extends StatefulWidget {
   final String petName;
   final String petImageUrl;
   final LatLng initialLocation;
+  final String petId;
 
 const MapPage({
   super.key,
+  required this.petId,
   required this.petName,
   required this.petImageUrl,
   required this.initialLocation,
@@ -44,8 +48,7 @@ class _MapPageState extends State<MapPage> {
   List<LatLng> petPath = [];
   final Map<PolylineId, Polyline> _polylines = {};
   final storageService = StorageService();
-
-
+  final user = FirebaseAuth.instance.currentUser!;
   MqttServerClient? client;
 
   WebSocketChannel? wsChannel;
@@ -58,8 +61,6 @@ class _MapPageState extends State<MapPage> {
   DateTime? outStartTime;
   Duration totalOutDuration = Duration.zero;
   bool isPetHome = false;
-
-
 
   bool useCloud = true;  // Initially tries Cloud MQTT
   int retryCount = 0;    // Retry attempts counter
@@ -250,6 +251,32 @@ final loadedNotifications = await storageService.loadNotifications(widget.petNam
     }
   });
 }
+
+Future<void> _saveSessionToFirebase() async {
+  if (outStartTime == null) return;
+
+  final endTime = DateTime.now();
+  final duration = endTime.difference(outStartTime!);
+
+  await FirebaseFirestore.instance
+  .collection("users")
+  .doc(user.uid)
+  .collection("pets")
+  .doc(widget.petId)
+  .collection("pet_info")
+  .doc("data") 
+  .collection("sessions")
+  .add({
+    'start_time': outStartTime!.toIso8601String(),
+    'end_time': endTime.toIso8601String(),
+    'duration_seconds': duration.inSeconds,
+    'distance_meters': totalDistance,
+  });
+
+
+  print("📦 Session saved to Firebase");
+}
+
 
 Future<bool> espHasInternet() async {
   try {
@@ -541,6 +568,7 @@ Future<void> _parseGPSData(String payload) async {
       double lon = double.parse(match.group(2)!);
       LatLng newLocation = LatLng(lat, lon);
 
+      CustomNotification? notif;
       bool addedToPath = false;
 
       setState(() {
@@ -560,20 +588,38 @@ Future<void> _parseGPSData(String payload) async {
           addedToPath = true;
         }
 
-
         // Move marker
         if (_markers.isEmpty) {
           addMarker(widget.petName, newLocation, widget.petImageUrl);
           mapController.animateCamera(CameraUpdate.newLatLng(newLocation));
 
-          if (!isPetHome && outStartTime == null) {
-            outStartTime = DateTime.now();
+          if (isPetHome && outStartTime == null) {
+           double distanceFromHome = _distanceBetween(LatLng(latitude, longitude), widget.initialLocation);
+
+            if (distanceFromHome > 20) { // customize threshold if needed
+              outStartTime = DateTime.now();
+              isPetHome = false;
+              print("🏃 Pet left home area. Session started.");
+              notif = CustomNotification(
+                title: "🏠 Pet Left Home",
+                body: "${widget.petName} has left home at $time.",
+                imageUrl: widget.petImageUrl,
+                time: time,
+              );
+              setState(() {
+                notifications.add(notif!);
+              });
+              notifications.add(notif!);
+            }           
           }
         } else {
           _updateMarkerPosition(widget.petName, newLocation);
         }
       });
-
+      if (notif != null) {
+          await storageService.saveNotifications(widget.petName, notifications);
+          notificationService.showCustomNotification(notif!);
+        }
       final weatherData = await fetchWeather(lat, lon);
         if (weatherData != null) {
           setState(() {
@@ -588,6 +634,18 @@ Future<void> _parseGPSData(String payload) async {
 
       if (geofenceManager.checkIfOutside(latitude, longitude)) {
         _showGeofenceAlert();
+        final notif = CustomNotification(
+        title: "📍 Geofence Alert",
+        body: "${widget.petName} exited the safe zone at $time.",
+        imageUrl: widget.petImageUrl,
+        time: time,
+      );
+
+      setState(() {
+        notifications.add(notif);
+      });
+
+      await storageService.saveNotifications(widget.petName, notifications);
       }
     }
   } catch (e) {
@@ -748,7 +806,9 @@ void _connectToWebSocket() {
   },
     onDone: () {
       print("WebSocket connection closed.");
-      canConnect = false;
+      setState(() {
+    canConnect = false;
+  });
     },
   );
 }
@@ -822,9 +882,18 @@ void _centerToPetMarker() {
     print("Pet location not available yet.");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Pet location not available yet."),
-        duration: Duration(seconds: 2),
-      ),
+              elevation: 0,
+              backgroundColor: Colors.transparent, 
+              behavior: SnackBarBehavior.floating,
+              content:AwesomeSnackbarContent(title: 'Hold on', message: 'Pet Location not available yet', 
+              contentType: ContentType.failure,
+              color: ui.Color.fromARGB(255, 214, 60, 73),
+              ) ,
+              duration: Duration(seconds: 2),
+              shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+              ),
+              ),
     );
   }
 }
@@ -847,12 +916,9 @@ Future<void> _addHomeMarker(LatLng location) async {
   );
   
   setState(() {
-    _markers.clear();
     _markers['home'] = homeMarker;
   });
 }
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -876,12 +942,23 @@ Future<void> _addHomeMarker(LatLng location) async {
             ],
           ),
       child: AppBar(
+        centerTitle: true, 
         backgroundColor: Colors.transparent,
         iconTheme: IconThemeData(color: Colors.white),
         elevation: 0,
         title: Text("GPS Tracker",style: TextStyle(color: Colors.white),),
         automaticallyImplyLeading: true,
         actions: [
+          IconButton(
+              icon: const Icon(Icons.help_outline, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HelpPage()),
+                );
+              },
+            ),
+
           IconButton(
             icon: Icon(Icons.info_outline,color: Colors.white,),
             onPressed: () {
@@ -1016,12 +1093,17 @@ Future<void> _addHomeMarker(LatLng location) async {
                 backgroundColor: Colors.white,
                 label: Text("I'm Home", style: TextStyle(color: Colors.black)),
                 icon: Icon(Icons.home, color: Colors.black),
-                onPressed: () {
+                onPressed: () async {
                   if (outStartTime != null) {
+                    await _saveSessionToFirebase();
+
                     setState(() {
                       totalOutDuration += DateTime.now().difference(outStartTime!);
                       outStartTime = null;
                       isPetHome = true;
+                      totalDistance = 0.0;
+                      petPath.clear();
+                      _polylines.clear(); // optional: clears the visible path
                     });
                   }
                 },

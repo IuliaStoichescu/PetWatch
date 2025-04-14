@@ -200,6 +200,7 @@ class _PetCardState extends State<PetCard> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => MapPage(
+                                    petId: widget.petId,
                                     petName: widget.petDetails["name"] ?? "Unnamed Pet",
                                     petImageUrl: widget.petDetails["imageUrl"] ?? "",
                                     initialLocation: home,

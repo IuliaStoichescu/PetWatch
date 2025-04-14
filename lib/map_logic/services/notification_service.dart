@@ -4,7 +4,7 @@ import 'package:pet_watch/map_logic/services/custom-notification.dart';
 class NotificationService {
   final notificationsPlugin = FlutterLocalNotificationsPlugin();
 
-  bool _isInitialized = false;
+  final bool _isInitialized = false;
 
   bool get isInitialized => _isInitialized;
 

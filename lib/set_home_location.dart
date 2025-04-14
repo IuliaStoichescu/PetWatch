@@ -1,3 +1,6 @@
+import 'dart:ui' as ui;
+
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -33,15 +36,59 @@ class _SetHomeLocationPageState extends State<SetHomeLocationPage> {
         'lng': location.longitude,
       });
 }
+@override
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 30),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
+        ),
+        content: AwesomeSnackbarContent(
+          title: 'Set Home Location',
+          message: '📍 Tap on map to set home base for your pet',
+          contentType: ContentType.help,
+          color: ui.Color.fromARGB(255, 60, 214, 193),
+        ),
+      ),
+    );
+  });
+}
 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Set Home Location")),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(60),
+        child: Container
+        (
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [ui.Color.fromARGB(255, 60, 214, 193), ui.Color.fromARGB(255, 60, 214, 193), ui.Color.fromARGB(255, 60, 214, 193)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 10,
+                spreadRadius: 2,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+      child: AppBar(iconTheme: IconThemeData(color: Colors.white),title: Text("Set Home Location",style: TextStyle(color: Colors.white)),backgroundColor: Colors.transparent,))),
       body: Stack(
         children: [
           GoogleMap(
+            myLocationButtonEnabled: false,
             initialCameraPosition: CameraPosition(
               target: LatLng(45.7489, 21.2087), // Default to somewhere like Timișoara
               zoom: 14,
@@ -63,7 +110,7 @@ class _SetHomeLocationPageState extends State<SetHomeLocationPage> {
                 : {},
           ),
     Positioned(
-      bottom: 90,
+      top: 80,
       right: 16,
       child: FloatingActionButton(
         heroTag: 'zoom_in',
@@ -76,7 +123,7 @@ class _SetHomeLocationPageState extends State<SetHomeLocationPage> {
     ),
 
     Positioned(
-      bottom: 16,
+      top: 150,
       right: 16,
       child: FloatingActionButton(
         heroTag: 'zoom_out',
@@ -93,7 +140,15 @@ class _SetHomeLocationPageState extends State<SetHomeLocationPage> {
               left: 16,
               right: 16,
               child: ElevatedButton.icon(
-                onPressed: () async {
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color.fromARGB(255, 60, 214, 193), // background color
+                    foregroundColor: Colors.white, // text & icon color
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5), // less wide
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () async {
                     if (selectedLocation == null) return;
 
                     await FirebaseFirestore.instance
@@ -112,6 +167,7 @@ class _SetHomeLocationPageState extends State<SetHomeLocationPage> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => MapPage(
+                          petId: widget.petId,
                           petName: widget.petName,
                           petImageUrl: widget.petImageUrl,
                           initialLocation: selectedLocation!,
@@ -119,9 +175,10 @@ class _SetHomeLocationPageState extends State<SetHomeLocationPage> {
                       ),
                     );
                   },
-                icon: Icon(Icons.check),
-                label: Text("Confirm Home Location"),
-              ),
+                  icon: Icon(Icons.check,color: Colors.white,),
+                  label: Text("Confirm Home Location"),
+                )
+
             ),
         ],
       ),
