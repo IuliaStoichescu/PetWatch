@@ -106,6 +106,18 @@ class _PetCardState extends State<PetCard> {
   return null;
 }
 
+/*@override
+void initState() {
+  super.initState();
+  _loadTrackingStatus();
+}
+void _loadTrackingStatus() async {
+  bool storedStatus = await storageService.loadTrackingStatus(widget.petId);
+  setState(() {
+    isTrackingOn = storedStatus;
+  });
+}*/
+
   @override
   Widget build(BuildContext context) {
     String petName = widget.petDetails["name"] ?? "Unnamed Pet";
@@ -118,7 +130,7 @@ class _PetCardState extends State<PetCard> {
     IconData genderIcon = isFemale ? Icons.female : Icons.male;
     Color genderColor = isFemale ? Colors.pinkAccent : Colors.blueAccent;
 
-    final storageService = StorageService();
+    final StorageService storageService = StorageService();
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8),
@@ -174,12 +186,13 @@ class _PetCardState extends State<PetCard> {
                           setState(() {
                             isTrackingOn = value;
                           });
+                         // await storageService.saveTrackingStatus(widget.petId, value);
                            if (!value) {
                             try{
                               final sessionData = await storageService.loadSessionState(widget.petId);
-                              if(sessionData['ourStartTime']!=null){
+                              if(sessionData['outStartTime']!=null){
                                 final endTime = DateTime.now();
-                                final duration = endTime.difference(sessionData['ourStartTime']);
+                                final duration = endTime.difference(sessionData['outStartTime']);
 
                                 await FirebaseFirestore.instance
                                 .collection("users")
@@ -190,7 +203,7 @@ class _PetCardState extends State<PetCard> {
                                 .doc("data") 
                                 .collection("sessions")
                                 .add({
-                                  'start_time': sessionData['ourStartTime'].toIso8601String(),
+                                  'start_time': sessionData['outStartTime'].toIso8601String(),
                                   'end_time': endTime.toIso8601String(),
                                   'duration_seconds': duration.inSeconds,
                                   'distance_meters': sessionData['distance'],

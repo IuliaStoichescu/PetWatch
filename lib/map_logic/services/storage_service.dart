@@ -124,6 +124,7 @@ Future<void> clearSessionState(String petId) async {
   await prefs.remove('${prefix}_distance');
   await prefs.remove('${prefix}_start');
   await prefs.remove('${prefix}_home');
+  await prefs.remove('${petId}_marker');
 }
 
 Future<void> saveLastKnownMarker(String petId, LatLng position) async {
@@ -140,6 +141,16 @@ Future<LatLng?> loadLastKnownMarker(String petId) async {
     return LatLng(lat, lng);
   }
   return null;
+}
+
+Future<void> saveTrackingStatus(String petId, bool isTracking) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('${petId}_tracking', isTracking);
+}
+
+Future<bool> loadTrackingStatus(String petId) async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('${petId}_tracking') ?? false;
 }
 
 
