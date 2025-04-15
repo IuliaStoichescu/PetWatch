@@ -17,6 +17,7 @@ import 'package:pet_watch/map_logic/geofence_manager.dart';
 import 'package:pet_watch/map_logic/map_functions.dart';
 import 'package:pet_watch/map_logic/services/custom-notification.dart';
 import 'package:pet_watch/map_logic/services/notification_service.dart';
+import 'package:pet_watch/map_logic/widgets/marker_functions.dart';
 import 'package:pet_watch/map_logic/widgets/notifications_list_page.dart';
 import 'package:pet_watch/map_logic/widgets/stat_card.dart';
 import 'package:web_socket_channel/io.dart';
@@ -76,6 +77,7 @@ class _MapPageState extends State<MapPage> {
   // LatLng initialLocation = LatLng(45.7235054321469, 21.250409338816176);
   late GoogleMapController mapController;
   final Map<String, Marker> _markers = {};
+  final Map<String, Marker> _markersEvent = {};
   Color markerColor = Colors.red; //default color
   String? selectedMarkerId;
   LatLng? selectedMarkerPosition;
@@ -84,6 +86,7 @@ class _MapPageState extends State<MapPage> {
   final GeofenceManager geofenceManager = GeofenceManager();
   bool isSettingGeofence = false;
   bool detailedData = false;
+  bool isFollowModeEnabled = false;
   final notificationService = NotificationService();
 
   final controller = Completer<GoogleMapController>();
@@ -266,7 +269,7 @@ class _MapPageState extends State<MapPage> {
     final loadedNotifications = await storageService.loadNotifications(widget.petId);
     final sessionData = await storageService.loadSessionState(widget.petId);
     final lastMarkerPos =await storageService.loadLastKnownMarker(widget.petId);
-
+    final eventMarkers = await storageService.loadEventMarkers(widget.petId, context);
     // Check if we have a valid session in progress
     bool hasValidSession = sessionData['outStartTime'] != null;
     // Only add marker if coordinates are valid (not 0,0)
@@ -278,13 +281,11 @@ class _MapPageState extends State<MapPage> {
       latitude = lastMarkerPos.latitude;
       longitude = lastMarkerPos.longitude;
     } 
-    /*
-    final isTracking = await storageService.loadTrackingStatus(widget.petId);
-
-      // Only reset if tracking is off
-      if (!isTracking) {
-        resetCoords();
-      }*/
+      if (eventMarkers.isNotEmpty) {
+        setState(() {
+          _markersEvent.addAll(eventMarkers);
+        });
+      }
 
     setState(() {
       petPath = sessionData['polyline'];
@@ -298,30 +299,62 @@ class _MapPageState extends State<MapPage> {
   }
 
   Future<void> _saveSessionToFirebase() async {
-    if (outStartTime == null) return;
-    try {
-      final endTime = DateTime.now();
-      final duration = endTime.difference(outStartTime!);
+  if (outStartTime == null) return;
 
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .collection("pets")
-          .doc(widget.petId)
-          .collection("pet_info")
-          .doc("data")
-          .collection("sessions")
-          .add({
-        'start_time': outStartTime!.toIso8601String(),
-        'end_time': endTime.toIso8601String(),
-        'duration_seconds': duration.inSeconds,
-        'distance_meters': totalDistance,
-      });
-      print("📦 Session saved to Firebase");
-    } catch (e) {
-      print("Session was NOT saved to Firebase");
+  try {
+    final endTime = DateTime.now();
+    final duration = endTime.difference(outStartTime!);
+
+    List<Map<String, double>> pathData = petPath
+        .map((point) => {"lat": point.latitude, "lon": point.longitude})
+        .toList();
+
+    List<Map<String, dynamic>> eventList = _markersEvent.entries.map((entry) {
+      final marker = entry.value;
+      final parts = entry.key.split("_"); // e.g., FALL_12345
+      return {
+        "type": parts.first,
+        "time": eventTime, 
+        "lat": marker.position.latitude,
+        "lon": marker.position.longitude,
+      };
+    }).toList();
+
+    Map<String, dynamic>? weatherData;
+    if (currentWeather != null) {
+      weatherData = {
+        "temp_c": currentWeather!["current"]["temp_c"],
+        "condition": currentWeather!["current"]["condition"]["text"],
+        "icon": currentWeather!["current"]["condition"]["icon"]
+      };
     }
+
+    final sessionData = {
+      "start_time": outStartTime!.toIso8601String(),
+      "end_time": endTime.toIso8601String(),
+      "duration_seconds": duration.inSeconds,
+      "distance_meters": totalDistance,
+      "path": pathData,
+      "events": eventList,
+      "weather": weatherData,
+    };
+
+    await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .collection("pets")
+        .doc(widget.petId)
+        .collection("pet_info")
+        .doc("data")
+        .collection("sessions")
+        .add(sessionData);
+
+    print("Full session saved to Firebase with weather and path.");
+  } catch (e) {
+    print("Failed to save full session: $e");
   }
+}
+
 
   Future<bool> espHasInternet() async {
     try {
@@ -545,6 +578,21 @@ class _MapPageState extends State<MapPage> {
           });
           await storageService.saveNotifications(widget.petId, notifications);
           notificationService.showCustomNotification(notif);
+
+          await MarkerFunctions.addEventMarker(
+            context: context, 
+            markerMap: _markersEvent,
+            updateMarkers: (newMarkers) {
+              setState(() {
+               // _markersEvent.clear();
+                _markersEvent.addAll(newMarkers);
+              });
+            },
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            location: LatLng(eventLatitude, eventLongitude),
+            type: eventType,
+          );
+          await storageService.saveEventMarkers(widget.petId, _markersEvent);
         }
 
         print("Parsed Event and showed notification.");
@@ -558,6 +606,7 @@ class _MapPageState extends State<MapPage> {
     final marker = _markers[id];
     if (marker != null) {
       final updatedMarker = marker.copyWith(
+        rotationParam: 0.0,
         positionParam: newPosition,
       );
       setState(() {
@@ -700,8 +749,7 @@ Future<void> _parseGPSData(String payload) async {
             }
           }
         }
-        
-        if (petPath.length == 1) {
+        if (petPath.length == 1 || isFollowModeEnabled) {
           mapController.animateCamera(CameraUpdate.newLatLng(newLocation));
         }
       });
@@ -1126,7 +1174,7 @@ Future<void> _parseGPSData(String payload) async {
                 (value) => value.mapId), // assign this in onMapCreated
             curve: Curves.easeInOut,
             duration: Duration(milliseconds: 800),
-            markers: Set<Marker>.of(_markers.values),
+            markers: Set<Marker>.of({..._markers,..._markersEvent}.values),
             child: GoogleMap(
               polylines: Set<Polyline>.of(_polylines.values),
               myLocationButtonEnabled: false,
@@ -1283,7 +1331,60 @@ Future<void> _parseGPSData(String payload) async {
               },
             ),
           ),
-
+          Positioned(
+                  bottom: 220,
+                  right: 16, 
+                  child: FloatingActionButton(
+                    backgroundColor: isFollowModeEnabled 
+                      ? Color.fromARGB(255, 144, 230, 219) // Highlight when active
+                      : Color.fromARGB(255, 255, 255, 255),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    heroTag: 'follow_mode',
+                    child: Icon(
+                      isFollowModeEnabled ? Icons.visibility : Icons.visibility_off,
+                      color: isFollowModeEnabled 
+                        ? Colors.white 
+                        : const Color.fromARGB(255, 115, 115, 115),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isFollowModeEnabled = !isFollowModeEnabled;
+                      });
+                      
+                      // If enabling follow mode, immediately center on pet
+                      if (isFollowModeEnabled && latitude != 0.0 && longitude != 0.0) {
+                        _centerToPetMarker();
+                      }
+                      
+                      // Show feedback to user
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          elevation: 0,
+                          backgroundColor: Colors.transparent,
+                          behavior: SnackBarBehavior.floating,
+                          content: AwesomeSnackbarContent(
+                            title: isFollowModeEnabled ? 'Follow Mode On' : 'Follow Mode Off',
+                            message: isFollowModeEnabled 
+                              ? 'Map will automatically follow your pet\'s movement'
+                              : 'Manual map control enabled',
+                            contentType: isFollowModeEnabled 
+                              ? ContentType.success 
+                              : ContentType.warning,
+                            color: isFollowModeEnabled
+                              ? Color.fromARGB(255, 60, 214, 193)
+                              : Color.fromARGB(255, 214, 140, 60),
+                          ),
+                          duration: Duration(seconds: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
           Positioned(
             bottom: 90,
             right: 16,
@@ -1410,7 +1511,7 @@ Future<void> _parseGPSData(String payload) async {
                     await storageService.saveLastKnownMarker(
                         widget.petId, LatLng(0, 0));
                     await storageService.saveNotifications(widget.petId, []);
-
+                    await storageService.clearEventMarkers(widget.petId); 
                     outTimer?.cancel();
 
                     setState(() {
@@ -1424,6 +1525,7 @@ Future<void> _parseGPSData(String payload) async {
                       latitude = 0.0;
                       longitude = 0.0;
                       _markers.remove(widget.petId);
+                      _markersEvent.clear();
                     });
                     print("Session saved!!");
                   }

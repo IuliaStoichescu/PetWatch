@@ -61,6 +61,19 @@ class HelpPage extends StatelessWidget {
             ),
             SizedBox(height: 24),
             Text(
+              "🎯 Follow Mode",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              "• Follow Mode automatically keeps the camera centered on your pet's location in real-time.\n"
+              "• To enable it, tap the eye icon \n"
+              "• This helps you monitor your pet’s movements without manually adjusting the map.\n"
+              "• Tap the icon again to exit this mode",
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 24),
+            Text(
               "🔔 Notifications",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),

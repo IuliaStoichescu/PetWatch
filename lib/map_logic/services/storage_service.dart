@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:pet_watch/map_logic/widgets/marker_functions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pet_watch/map_logic/services/custom-notification.dart';
@@ -153,7 +155,61 @@ Future<bool> loadTrackingStatus(String petId) async {
   return prefs.getBool('${petId}_tracking') ?? false;
 }
 
+// Save event markers
+Future<void> saveEventMarkers(String petId, Map<String, Marker> markers) async {
+  final prefs = await SharedPreferences.getInstance();
+  final key = '${petId}_event_markers';
 
+  List<String> markerList = markers.entries.map((entry) {
+    final m = entry.value;
+    return jsonEncode({
+      'id': entry.key,
+      'lat': m.position.latitude,
+      'lon': m.position.longitude,
+      'type': m.infoWindow.title, // store type as title (e.g., FALL, IMPACT)
+    });
+  }).toList();
+
+  await prefs.setStringList(key, markerList);
+  await prefs.setString('${petId}_saved_date', _today());
+}
+
+// Load event markers
+Future<Map<String, Marker>> loadEventMarkers(String petId, BuildContext context) async {
+  final prefs = await SharedPreferences.getInstance();
+  final key = '${petId}_event_markers';
+
+  if (!_isToday(prefs.getString('${petId}_saved_date'))) {
+    await prefs.remove(key);
+    return {};
+  }
+
+  final List<String>? markerList = prefs.getStringList(key);
+  if (markerList == null) return {};
+
+  Map<String, Marker> loadedMarkers = {};
+  for (String markerJson in markerList) {
+    final data = jsonDecode(markerJson);
+    final id = data['id'];
+    final lat = data['lat'];
+    final lon = data['lon'];
+    final type = data['type'];
+
+    final marker = await MarkerFunctions.createEventMarkerFromData(
+      context: context,
+      id: id,
+      position: LatLng(lat, lon),
+      type: type,
+    );
+    loadedMarkers[id] = marker;
+  }
+
+  return loadedMarkers;
+}
+Future<void> clearEventMarkers(String petId) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('${petId}_event_markers');
+}
   String _today() => DateTime.now().toIso8601String().substring(0, 10);
   bool _isToday(String? stored) => stored == _today();
 }

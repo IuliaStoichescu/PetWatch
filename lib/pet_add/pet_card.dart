@@ -188,36 +188,60 @@ void _loadTrackingStatus() async {
                           });
                          // await storageService.saveTrackingStatus(widget.petId, value);
                            if (!value) {
-                            try{
-                              final sessionData = await storageService.loadSessionState(widget.petId);
-                              if(sessionData['outStartTime']!=null){
+                              try {
+                                final sessionData = await storageService.loadSessionState(widget.petId);
                                 final endTime = DateTime.now();
+                                final DateTime startTime = sessionData['outStartTime'] is String
+                              ? DateTime.parse(sessionData['outStartTime'])
+                              : sessionData['outStartTime'];
                                 final duration = endTime.difference(sessionData['outStartTime']);
+                                
+                                final List<LatLng> petPath = sessionData['polyline'];
+                                final eventMarkers = await storageService.loadEventMarkers(widget.petId, context);
+                                final weather = sessionData['weather'] ?? null; 
+                                final pathData = petPath.map((p) => {"lat": p.latitude, "lon": p.longitude}).toList();
+
+                                final eventList = eventMarkers.entries.map((entry) {
+                                  final marker = entry.value;
+                                  final parts = entry.key.split("_"); // "FALL_168..."
+                                  return {
+                                    "type": parts.first,
+                                    "time": DateTime.fromMillisecondsSinceEpoch(int.parse(parts.last)).toIso8601String(),
+                                    "lat": marker.position.latitude,
+                                    "lon": marker.position.longitude,
+                                  };
+                                }).toList();
+
+                                final sessionObject = {
+                                  "start_time": sessionData['outStartTime'].toIso8601String(),
+                                  "end_time": endTime.toIso8601String(),
+                                  "duration_seconds": duration.inSeconds,
+                                  "distance_meters": sessionData['distance'],
+                                  "path": pathData,
+                                  "events": eventList,
+                                  "weather": weather,
+                                };
 
                                 await FirebaseFirestore.instance
-                                .collection("users")
-                                .doc(user.uid)
-                                .collection("pets")
-                                .doc(widget.petId)
-                                .collection("pet_info")
-                                .doc("data") 
-                                .collection("sessions")
-                                .add({
-                                  'start_time': sessionData['outStartTime'].toIso8601String(),
-                                  'end_time': endTime.toIso8601String(),
-                                  'duration_seconds': duration.inSeconds,
-                                  'distance_meters': sessionData['distance'],
-                                });
-                                print("Successfully to firebase");
+                                  .collection("users")
+                                  .doc(user.uid)
+                                  .collection("pets")
+                                  .doc(widget.petId)
+                                  .collection("pet_info")
+                                  .doc("data")
+                                  .collection("sessions")
+                                  .add(sessionObject);
+
+                                print("✅ Session saved to Firebase from PetCard");
+
+                              } catch (e) {
+                                print("❌ Error saving session in PetCard: $e");
                               }
-                            }catch(e){
-                              print("Error saving to firebase");
-                            }
-                             //final storageService = StorageService();
+
                               await storageService.clearSessionState(widget.petId);
                               await storageService.savePolyline(widget.petId, []);
                               await storageService.saveLastKnownMarker(widget.petId, LatLng(0, 0));
-                              print("🧹 Tracking turned off. Session cleared.");
+                              await storageService.clearEventMarkers(widget.petId);
                             }
                         },
                         activeColor: Colors.green,
