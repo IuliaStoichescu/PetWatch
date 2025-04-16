@@ -131,6 +131,22 @@ class _MapPageState extends State<MapPage> {
   String timeAcc = "00:00:00";
 
   Timer? outTimer;
+  bool isDarkMap = false;
+  String? _currentMapStyle;
+
+Future<void> _setMapStyle() async {
+  final stylePath = isDarkMap
+      ? 'assets/map_themes/dark_mode.json'
+      : 'assets/map_themes/light_mode.json';
+
+  final style = await DefaultAssetBundle.of(context).loadString(stylePath);
+  if (mounted) {
+    setState(() {
+      _currentMapStyle = style;
+    });
+  }
+}
+
 
     @override
   void initState() {
@@ -947,7 +963,7 @@ Future<void> _parseGPSData(String payload) async {
                 padding: EdgeInsets.all(10),
                 width: 250,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: !isDarkMap? Colors.white : ui.Color.fromARGB(255, 11, 84, 111),
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(color: Colors.black26, blurRadius: 5),
@@ -976,43 +992,43 @@ Future<void> _parseGPSData(String payload) async {
                                     ? "Connected to Cloud MQTT"
                                     : "Using Local WebSocket")
                                 : "No connection to GPS data",
-                            style: TextStyle(fontSize: 18),
+                            style: TextStyle(fontSize: 18,color: isDarkMap? Colors.white:Colors.black),
                           ),
                         ),
                       ],
                     ),
                     Text("GPS Information",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: TextStyle(fontWeight: FontWeight.bold,color: isDarkMap? Colors.white:Colors.black)),
                     Divider(),
                     if (latitude == 0.0 && longitude == 0.0) ...[
-                      Text("⚠️  Gps data not recorded yet!"),
-                      Text("💡Try getting your pet outside")
+                      Text("⚠️  Gps data not recorded yet!",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
+                      Text("💡Try getting your pet outside",style: TextStyle(color: isDarkMap? Colors.white:Colors.black))
                     ] else ...[
-                      Text("Latitude: $latitude"),
-                      Text("Longitude: $longitude"),
-                      Text("Altitude: $altitude m"),
-                      Text("Speed: $speed m/s"),
-                      Text("Satellites: $satellites"),
+                      Text("Latitude: $latitude",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      Text("Longitude: $longitude",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      Text("Altitude: $altitude m",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      Text("Speed: $speed m/s",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      Text("Satellites: $satellites",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
                       Text("Time: $time"),
                       Text(
-                          "Distance walked: ${(totalDistance / 1000).toStringAsFixed(2)} km"),
+                          "Distance walked: ${(totalDistance / 1000).toStringAsFixed(2)} km",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
                     ],
                     SizedBox(height: 5),
                     Text("Accelometer Information",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: TextStyle(fontWeight: FontWeight.bold,color: isDarkMap? Colors.white:Colors.black)),
                     Divider(),
                     if (detailedData) ...[
-                      Text("Acceleration: AX: $ax, AY: $ay, AZ: $az"),
-                      Text("Gyroscope: GX: $gx, GY: $gy, GZ: $gz"),
-                      Text("Angle: ANX: $anx, ANY: $any, ANZ: $anz"),
-                      Text("Magnitude: $mag"),
-                      if (actMag != 0.0) Text("Active Magnitude: $actMag"),
-                      if (noise != 0.0) Text("Noise: $noise"),
-                      Text("State: $state"),
-                      Text("Time: $timeAcc"),
+                      Text("Acceleration: AX: $ax, AY: $ay, AZ: $az",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      Text("Gyroscope: GX: $gx, GY: $gy, GZ: $gz",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      Text("Angle: ANX: $anx, ANY: $any, ANZ: $anz",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      Text("Magnitude: $mag",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      if (actMag != 0.0) Text("Active Magnitude: $actMag",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      if (noise != 0.0) Text("Noise: $noise",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      Text("State: $state",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      Text("Time: $timeAcc",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
                     ] else ...[
-                      Text("State: $state"),
-                      Text("Time: $timeAcc"),
+                      Text("State: $state",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
+                      Text("Time: $timeAcc",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
                     ],
                     Align(
                       alignment: Alignment.centerRight,
@@ -1020,7 +1036,7 @@ Future<void> _parseGPSData(String payload) async {
                         onPressed: () {
                           overlayEntry.remove();
                         },
-                        child: Text("Close"),
+                        child: Text("Close",style: TextStyle(color: isDarkMap? Colors.white:const ui.Color.fromARGB(255, 47, 36, 66))),
                       ),
                     ),
                   ],
@@ -1144,9 +1160,15 @@ Future<void> _parseGPSData(String payload) async {
         preferredSize: Size.fromHeight(60),
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                ui.Color.fromARGB(255, 144, 230, 219),
+            gradient: LinearGradient(           
+              colors: isDarkMap ?
+              [
+                ui.Color.fromARGB(255, 11, 84, 111),
+                ui.Color.fromARGB(255, 68, 45, 65),
+                ui.Color.fromARGB(255, 97, 46, 74)
+              ]
+              :[
+                 ui.Color.fromARGB(255, 144, 230, 219),
                 ui.Color.fromARGB(255, 248, 165, 239),
                 ui.Color.fromARGB(255, 244, 116, 186)
               ],
@@ -1174,6 +1196,18 @@ Future<void> _parseGPSData(String payload) async {
             ),
             automaticallyImplyLeading: true,
             actions: [
+              IconButton(
+                icon: Icon(
+                  isDarkMap ? Icons.dark_mode : Icons.light_mode,
+                  color:isDarkMap? Colors.white: const ui.Color.fromARGB(255, 255, 243, 79),
+                ),
+                onPressed: () async {
+                  setState(() {
+                    isDarkMap = !isDarkMap;
+                  });
+                  await _setMapStyle();
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.help_outline, color: Colors.white),
                 onPressed: () {
@@ -1206,16 +1240,18 @@ Future<void> _parseGPSData(String payload) async {
             duration: Duration(milliseconds: 800),
             markers: Set<Marker>.of({..._markers,..._markersEvent}.values),
             child: GoogleMap(
+              style: _currentMapStyle,
               polylines: Set<Polyline>.of(_polylines.values),
               myLocationButtonEnabled: false,
               circles: geofenceManager.geofenceCircle != null
                   ? {geofenceManager.geofenceCircle!}
                   : {},
               initialCameraPosition: CameraPosition(target: widget.initialLocation, zoom: 14),
-              onMapCreated: (controller) {
+              onMapCreated: (controller) {              
                 mapController = controller;
                 this.controller.complete(controller);
                 _addHomeMarker(widget.initialLocation);
+                _setMapStyle();
               },
               onTap: (LatLng tappedPoint) {
                 if (isSettingGeofence) {
