@@ -18,9 +18,12 @@ import 'package:pet_watch/map_logic/geofence_manager.dart';
 import 'package:pet_watch/map_logic/map_functions.dart';
 import 'package:pet_watch/map_logic/services/custom-notification.dart';
 import 'package:pet_watch/map_logic/services/notification_service.dart';
+import 'package:pet_watch/map_logic/widgets/floating_buttons_panel.dart';
 import 'package:pet_watch/map_logic/widgets/marker_functions.dart';
 import 'package:pet_watch/map_logic/widgets/notifications_list_page.dart';
 import 'package:pet_watch/map_logic/widgets/stat_card.dart';
+import 'package:pet_watch/map_logic/widgets/stat_card_window.dart';
+import 'package:pet_watch/map_logic/widgets/weather_info_box.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
@@ -129,6 +132,26 @@ class _MapPageState extends State<MapPage> {
 
   Timer? outTimer;
 
+    @override
+  void initState() {
+    super.initState();
+    _monitorNetworkChanges(); // Check internet in real time
+    _connectToMQTT();
+    decideConnectionStrategy();
+    geofenceManager.loadGeofence(widget.petName);
+    _loadStoredData();
+    startOutTimer(); // Start timer if outStartTime is already set
+  }
+
+  @override
+  void dispose() {
+    wsSubscription?.cancel();
+    wsChannel?.sink.close();
+    client?.disconnect();
+    outTimer?.cancel();
+    super.dispose();
+  }
+
   CustomNotification buildNotification({
     required String source, // "accel" or "event"
     required String value,
@@ -227,35 +250,6 @@ class _MapPageState extends State<MapPage> {
     }
 
     return null;
-  }
-
-  void resetCoords() {
-    latitude = 0.0;
-    longitude = 0.0;
-    altitude = 0.0;
-    speed = 0.0;
-    satellites = 0;
-    time = "";
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _monitorNetworkChanges(); // Check internet in real time
-    _connectToMQTT();
-    decideConnectionStrategy();
-    geofenceManager.loadGeofence(widget.petName);
-    _loadStoredData();
-    startOutTimer(); // Start timer if outStartTime is already set
-  }
-
-  @override
-  void dispose() {
-    wsSubscription?.cancel();
-    wsChannel?.sink.close();
-    client?.disconnect();
-    outTimer?.cancel();
-    super.dispose();
   }
 
   void startOutTimer() {
@@ -375,6 +369,90 @@ class _MapPageState extends State<MapPage> {
     return false;
   }
 
+    void _connectToWebSocket() {
+    print("Connecting to WebSocket at ws://192.168.4.1/ws ...");
+
+    wsChannel = IOWebSocketChannel.connect('ws://192.168.4.1/ws');
+
+    wsSubscription = wsChannel!.stream.listen(
+      (message) {
+        print("WebSocket message received: $message");
+        setState(() {
+          canConnect = true; // Connection confirmed via data
+        });
+        _parseGPSData(message); // refolosim parserul MQTT
+      },
+      onError: (error) {
+        print("WebSocket error: $error");
+        setState(() {
+          canConnect = false;
+        });
+      },
+      onDone: () {
+        print("WebSocket connection closed.");
+        setState(() {
+          canConnect = false;
+        });
+      },
+    );
+  }
+
+  Future<void> _connectToMQTT() async {
+    if (retryCount > 10) {
+      print("Max retry attempts reached. Stopping MQTT connection attempts.");
+      return;
+    }
+
+    String broker = useCloud
+        ? "4e8b407740ce42b18fba5f234af6b314.s1.eu.hivemq.cloud"
+        : "192.168.4.1";
+
+    client = MqttServerClient(broker, "flutter_client");
+    client!.port = useCloud
+        ? 8883
+        : 1883; // TLS (8883) for cloud, Unsecure (1883) for local
+    client!.logging(on: true);
+    client!.keepAlivePeriod = 60;
+
+    if (useCloud) {
+      client!.secure = true; // enable TLS only for cloud
+      client!.onBadCertificate =
+          (dynamic cert) => true; // ignoring SSL certificate errors
+    }
+
+    final connMessage = MqttConnectMessage()
+        .withClientIdentifier("flutter_client")
+        .startClean()
+        .withWillQos(MqttQos.atMostOnce);
+
+    client!.connectionMessage = connMessage;
+
+    client!.onDisconnected = () {
+      print(" MQTT Disconnected.");
+      setState(() {
+        canConnect = false;
+      });
+    };
+
+    try {
+      await client!.connect("Iuli25", "Iuli369147");
+      client!.subscribe("gps/tracker", MqttQos.atMostOnce);
+      client!.subscribe("accel/tracker", MqttQos.atMostOnce);
+      client!.subscribe("event/tracker", MqttQos.atMostOnce);
+      _listenToMessages(); // Start listening to messages
+      setState(() {}); // Update UI instantly after connecting
+      print("Connected to MQTT: $broker");
+    } catch (e) {
+      print("Did not connect to MQTT: $e");
+      setState(() {
+        canConnect = false;
+        useCloud = false; // Switch to local mode immediately
+        retryCount++;
+      });
+      Future.delayed(Duration(seconds: 3), _connectToMQTT); // Retry after 3 sec
+    }
+  }
+
   Future<void> decideConnectionStrategy() async {
     final connectivity = await Connectivity().checkConnectivity();
     final bool phoneOnline = connectivity != ConnectivityResult.none;
@@ -403,8 +481,10 @@ class _MapPageState extends State<MapPage> {
       print(
           "⚠️ ESP are internet, dar telefonul nu este conectat la vreo rețea.");
     }
-
-    setState(() {});
+    if(mounted){
+      setState(() {});
+    }
+    
   }
 
   /// Monitors real-time internet connectivity changes
@@ -968,90 +1048,6 @@ Future<void> _parseGPSData(String payload) async {
     });
   }
 
-  void _connectToWebSocket() {
-    print("Connecting to WebSocket at ws://192.168.4.1/ws ...");
-
-    wsChannel = IOWebSocketChannel.connect('ws://192.168.4.1/ws');
-
-    wsSubscription = wsChannel!.stream.listen(
-      (message) {
-        print("WebSocket message received: $message");
-        setState(() {
-          canConnect = true; // Connection confirmed via data
-        });
-        _parseGPSData(message); // refolosim parserul MQTT
-      },
-      onError: (error) {
-        print("WebSocket error: $error");
-        setState(() {
-          canConnect = false;
-        });
-      },
-      onDone: () {
-        print("WebSocket connection closed.");
-        setState(() {
-          canConnect = false;
-        });
-      },
-    );
-  }
-
-  Future<void> _connectToMQTT() async {
-    if (retryCount > 10) {
-      print("Max retry attempts reached. Stopping MQTT connection attempts.");
-      return;
-    }
-
-    String broker = useCloud
-        ? "4e8b407740ce42b18fba5f234af6b314.s1.eu.hivemq.cloud"
-        : "192.168.4.1";
-
-    client = MqttServerClient(broker, "flutter_client");
-    client!.port = useCloud
-        ? 8883
-        : 1883; // TLS (8883) for cloud, Unsecure (1883) for local
-    client!.logging(on: true);
-    client!.keepAlivePeriod = 60;
-
-    if (useCloud) {
-      client!.secure = true; // enable TLS only for cloud
-      client!.onBadCertificate =
-          (dynamic cert) => true; // ignoring SSL certificate errors
-    }
-
-    final connMessage = MqttConnectMessage()
-        .withClientIdentifier("flutter_client")
-        .startClean()
-        .withWillQos(MqttQos.atMostOnce);
-
-    client!.connectionMessage = connMessage;
-
-    client!.onDisconnected = () {
-      print(" MQTT Disconnected.");
-      setState(() {
-        canConnect = false;
-      });
-    };
-
-    try {
-      await client!.connect("Iuli25", "Iuli369147");
-      client!.subscribe("gps/tracker", MqttQos.atMostOnce);
-      client!.subscribe("accel/tracker", MqttQos.atMostOnce);
-      client!.subscribe("event/tracker", MqttQos.atMostOnce);
-      _listenToMessages(); // Start listening to messages
-      setState(() {}); // Update UI instantly after connecting
-      print("Connected to MQTT: $broker");
-    } catch (e) {
-      print("Did not connect to MQTT: $e");
-      setState(() {
-        canConnect = false;
-        useCloud = false; // Switch to local mode immediately
-        retryCount++;
-      });
-      Future.delayed(Duration(seconds: 3), _connectToMQTT); // Retry after 3 sec
-    }
-  }
-
   void _centerToPetMarker() {
     if (latitude != 0.0 && longitude != 0.0) {
       LatLng petLocation = LatLng(latitude, longitude);
@@ -1220,18 +1216,6 @@ Future<void> _parseGPSData(String payload) async {
                 mapController = controller;
                 this.controller.complete(controller);
                 _addHomeMarker(widget.initialLocation);
-              /*  if (latitude == 0.0 && longitude == 0.0) {
-                Future.delayed(Duration(milliseconds: 300), () {
-                    mapController.animateCamera(
-                      CameraUpdate.newCameraPosition(
-                        CameraPosition(
-                          target: widget.initialLocation,
-                          zoom: 14,
-                        ),
-                      ),
-                    );
-                    setState(() {});
-                });}*/
               },
               onTap: (LatLng tappedPoint) {
                 if (isSettingGeofence) {
@@ -1247,211 +1231,35 @@ Future<void> _parseGPSData(String payload) async {
               },
             ),
           ),
-          Positioned(
-            top: 30,
-            left: 16,
-            child: Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.85),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      StatCard(
-                        title: "Distance",
-                        value:
-                            "${(totalDistance / 1000).toStringAsFixed(2)} km",
-                        icon: Icons.map,
-                        color: Colors.blue,
-                      ),
-                      SizedBox(width: 10), // spacing between cards
-                      StatCard(
-                        title: "Time Out",
-                        value: _formatDuration(_calculateCurrentOutTime()),
-                        icon: Icons.timer,
-                        color: Colors.deepPurple,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (currentWeather != null)
-            Positioned(
-              top: 30,
-              right: 16,
-              child: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.85),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.network(
-                      "https:${currentWeather!['current']['condition']['icon']}",
-                      width: 40,
-                      errorBuilder: (context, error, stackTrace) =>
-                          Icon(Icons.cloud_off),
-                    ),
-                    SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "${currentWeather!['current']['temp_c']}°C",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          currentWeather!['current']['condition']['text'],
-                          style: TextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: FloatingActionButton(
-              backgroundColor: ui.Color.fromARGB(255, 255, 255, 255),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              heroTag: 'center_to_pet',
-              child: Icon(
-                Icons.my_location,
-                color: const ui.Color.fromARGB(255, 115, 115, 115),
-              ),
-              onPressed: () {
-                _centerToPetMarker();
-              },
-            ),
+         StatCardWindow(
+            totalDistance: totalDistance,
+            formattedDuration: _formatDuration(_calculateCurrentOutTime()),
           ),
 
-          Positioned(
-            bottom: 100,
-            left: 16,
-            child: FloatingActionButton(
-              backgroundColor: ui.Color.fromARGB(255, 255, 255, 255),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              heroTag: 'updates/messages',
-              child: Icon(
-                Icons.message,
-                color: const ui.Color.fromARGB(255, 115, 115, 115),
-              ),
-              onPressed: () {
+          if (currentWeather != null)
+            WeatherInfoBox(weatherData: currentWeather!),
+           FloatingButtonsPanel(
+              onCenterPet: _centerToPetMarker,
+              onToggleFollowMode: () {
+                setState(() {
+                  isFollowModeEnabled = !isFollowModeEnabled;
+                });
+                if (isFollowModeEnabled && latitude != 0.0 && longitude != 0.0) {
+                  _centerToPetMarker();
+                }
+              },
+              onOpenNotifications: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        NotificationListPage(notifications: notifications),
+                    builder: (context) => NotificationListPage(notifications: notifications),
                   ),
                 );
               },
+              onZoomIn: () => mapController.animateCamera(CameraUpdate.zoomIn()),
+              onZoomOut: () => mapController.animateCamera(CameraUpdate.zoomOut()),
+              isFollowModeEnabled: isFollowModeEnabled,
             ),
-          ),
-          Positioned(
-                  bottom: 220,
-                  right: 16, 
-                  child: FloatingActionButton(
-                    backgroundColor: isFollowModeEnabled 
-                      ? Color.fromARGB(255, 144, 230, 219) // Highlight when active
-                      : Color.fromARGB(255, 255, 255, 255),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    heroTag: 'follow_mode',
-                    child: Icon(
-                      isFollowModeEnabled ? Icons.visibility : Icons.visibility_off,
-                      color: isFollowModeEnabled 
-                        ? Colors.white 
-                        : const Color.fromARGB(255, 115, 115, 115),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isFollowModeEnabled = !isFollowModeEnabled;
-                       
-                         });
-                          if(isFollowModeEnabled && latitude!=0.0 && longitude!=0.0)
-                         {
-                              _centerToPetMarker();
-                         }
-                      // Show feedback to user
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          elevation: 0,
-                          backgroundColor: Colors.transparent,
-                          behavior: SnackBarBehavior.floating,
-                          content: AwesomeSnackbarContent(
-                            title: isFollowModeEnabled ? 'Follow Mode On' : 'Follow Mode Off',
-                            message: isFollowModeEnabled 
-                              ? 'Map will automatically follow your pet\'s movement'
-                              : 'Manual map control enabled',
-                            contentType: isFollowModeEnabled 
-                              ? ContentType.success 
-                              : ContentType.warning,
-                            color: isFollowModeEnabled
-                              ? Color.fromARGB(255, 60, 214, 193)
-                              : Color.fromARGB(255, 214, 140, 60),
-                          ),
-                          duration: Duration(seconds: 2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-          Positioned(
-            bottom: 90,
-            right: 16,
-            child: Column(
-              children: [
-                FloatingActionButton(
-                  backgroundColor: ui.Color.fromARGB(255, 255, 255, 255),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  heroTag: 'zoom_in',
-                  child: Icon(Icons.add,
-                      color: const ui.Color.fromARGB(255, 115, 115, 115)),
-                  onPressed: () {
-                    mapController.animateCamera(CameraUpdate.zoomIn());
-                  },
-                ),
-                SizedBox(height: 10),
-                FloatingActionButton(
-                  backgroundColor: ui.Color.fromARGB(255, 255, 255, 255),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  heroTag: 'zoom_out',
-                  child: Icon(Icons.remove,
-                      color: const ui.Color.fromARGB(255, 115, 115, 115)),
-                  onPressed: () {
-                    mapController.animateCamera(CameraUpdate.zoomOut());
-                  },
-                ),
-              ],
-            ),
-          ),
-          // Custom Info Window
           if (selectedMarkerId != null)
             Positioned(
               left: MediaQuery.of(context).size.width * 0.3,
