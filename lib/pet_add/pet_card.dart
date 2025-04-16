@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:lottie/lottie.dart';
+import 'package:lottie/lottie.dart' as lottie;
 import 'package:pet_watch/map_logic/map.dart';
 import 'package:pet_watch/map_logic/services/storage_service.dart';
 import 'package:pet_watch/set_home_location.dart';
@@ -41,7 +41,7 @@ class _PetListState extends State<PetList> {
                   "No pet profiles added yet!",
                   style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
-                Lottie.asset("assets/missing_animation.json"),
+                lottie.Lottie.asset("assets/missing_animation.json"),
               ],
             ),
           );
@@ -105,18 +105,12 @@ class _PetCardState extends State<PetCard> {
   }
   return null;
 }
-
-/*@override
-void initState() {
-  super.initState();
-  _loadTrackingStatus();
+Future<void> _cleanupSession() async {
+  await storageService.clearSessionState(widget.petId);
+  await storageService.savePolyline(widget.petId, []);
+  await storageService.saveLastKnownMarker(widget.petId, LatLng(0, 0));
+  await storageService.clearEventMarkers(widget.petId);
 }
-void _loadTrackingStatus() async {
-  bool storedStatus = await storageService.loadTrackingStatus(widget.petId);
-  setState(() {
-    isTrackingOn = storedStatus;
-  });
-}*/
 
   @override
   Widget build(BuildContext context) {
@@ -182,68 +176,106 @@ void _loadTrackingStatus() async {
                       scale: 1.2,
                       child: Switch(
                         value: isTrackingOn,
-                        onChanged: (value) async{
+                       onChanged: (value) async {
                           setState(() {
                             isTrackingOn = value;
                           });
-                         // await storageService.saveTrackingStatus(widget.petId, value);
-                           if (!value) {
-                              try {
-                                final sessionData = await storageService.loadSessionState(widget.petId);
-                                final endTime = DateTime.now();
-                                final DateTime startTime = sessionData['outStartTime'] is String
-                              ? DateTime.parse(sessionData['outStartTime'])
-                              : sessionData['outStartTime'];
-                                final duration = endTime.difference(sessionData['outStartTime']);
-                                
-                                final List<LatLng> petPath = sessionData['polyline'];
-                                final eventMarkers = await storageService.loadEventMarkers(widget.petId, context);
-                                final weather = sessionData['weather'] ?? null; 
-                                final pathData = petPath.map((p) => {"lat": p.latitude, "lon": p.longitude}).toList();
 
-                                final eventList = eventMarkers.entries.map((entry) {
-                                  final marker = entry.value;
-                                  final parts = entry.key.split("_"); // "FALL_168..."
-                                  return {
-                                    "type": parts.first,
-                                    "time": DateTime.fromMillisecondsSinceEpoch(int.parse(parts.last)).toIso8601String(),
-                                    "lat": marker.position.latitude,
-                                    "lon": marker.position.longitude,
-                                  };
-                                }).toList();
-
-                                final sessionObject = {
-                                  "start_time": sessionData['outStartTime'].toIso8601String(),
-                                  "end_time": endTime.toIso8601String(),
-                                  "duration_seconds": duration.inSeconds,
-                                  "distance_meters": sessionData['distance'],
-                                  "path": pathData,
-                                  "events": eventList,
-                                  "weather": weather,
-                                };
-
-                                await FirebaseFirestore.instance
-                                  .collection("users")
-                                  .doc(user.uid)
-                                  .collection("pets")
-                                  .doc(widget.petId)
-                                  .collection("pet_info")
-                                  .doc("data")
-                                  .collection("sessions")
-                                  .add(sessionObject);
-
-                                print("✅ Session saved to Firebase from PetCard");
-
-                              } catch (e) {
-                                print("❌ Error saving session in PetCard: $e");
+                          if (!value) { // When turning tracking off
+                            try {
+                              final sessionData = await storageService.loadSessionState(widget.petId);
+                              print("Debug - loaded sessionData: $sessionData");
+                              
+                              // Check if we have a valid session with start time
+                              final outStartTime = sessionData['outStartTime'];
+                              if (outStartTime == null) {
+                                print("❌ Cannot save session: outStartTime is null");
+                                await _cleanupSession();
+                                return;
                               }
-
-                              await storageService.clearSessionState(widget.petId);
-                              await storageService.savePolyline(widget.petId, []);
-                              await storageService.saveLastKnownMarker(widget.petId, LatLng(0, 0));
-                              await storageService.clearEventMarkers(widget.petId);
+                              
+                              // Load event markers with try-catch to isolate any errors
+                              Map<String, Marker> eventMarkers = {};
+                              try {
+                                eventMarkers = await storageService.loadEventMarkers(widget.petId, context);
+                              } catch (e) {
+                                print("⚠️ Error loading event markers: $e");
+                                // Continue with empty event markers rather than failing
+                              }
+                              
+                              final endTime = DateTime.now();
+                              final duration = endTime.difference(outStartTime);
+                              final List<LatLng> petPath = sessionData['polyline'] ?? [];
+                              
+                              // Safe conversion to required data structures
+                              final pathData = petPath.map((p) => {
+                                "lat": p.latitude, 
+                                "lon": p.longitude
+                              }).toList();
+                              
+                              final eventList = eventMarkers.entries.map((entry) {
+                                final marker = entry.value;
+                                final String id = entry.key;
+                                String type = "UNKNOWN";
+                                String timeStr = DateTime.now().toIso8601String();
+                                
+                                if (id.contains("_")) {
+                                  final parts = id.split("_");
+                                  type = parts.first;
+                                  if (parts.length > 1) {
+                                    try {
+                                      final timestamp = int.parse(parts.last);
+                                      timeStr = DateTime.fromMillisecondsSinceEpoch(timestamp).toIso8601String();
+                                    } catch (e) {
+                                      print("⚠️ Could not parse timestamp: $e");
+                                    }
+                                  }
+                                }
+                                
+                                return {
+                                  "type": type,
+                                  "time": timeStr,
+                                  "lat": marker.position.latitude,
+                                  "lon": marker.position.longitude,
+                                };
+                              }).toList();
+                              
+                              final sessionObject = {
+                                "start_time": outStartTime.toIso8601String(),
+                                "end_time": endTime.toIso8601String(),
+                                "duration_seconds": duration.inSeconds,
+                                "distance_meters": sessionData['distance'] ?? 0.0,
+                                "path": pathData,
+                                "events": eventList,
+                              };
+                              
+                              // Add weather data if available
+                              final weather = sessionData['weather'];
+                              if (weather != null) {
+                                sessionObject["weather"] = weather;
+                              }
+                              
+                              await FirebaseFirestore.instance
+                                .collection("users")
+                                .doc(user.uid)
+                                .collection("pets")
+                                .doc(widget.petId)
+                                .collection("pet_info")
+                                .doc("data")
+                                .collection("sessions")
+                                .add(sessionObject);
+                                
+                              print("✅ Session saved to Firebase from PetCard");
+                            } catch (e, stackTrace) {
+                              print("❌ Error saving session in PetCard: $e");
+                              print("Stack trace: $stackTrace");
+                            } finally {
+                              // Cleanup regardless of success or failure
+                              await _cleanupSession();
                             }
+                          }
                         },
+
                         activeColor: Colors.green,
                         activeTrackColor: Colors.greenAccent,
                         inactiveThumbColor: const Color.fromARGB(255, 110, 0, 0),
@@ -304,36 +336,49 @@ void _loadTrackingStatus() async {
     );
   }
 
-  void _deletePet() async {
-    try {
-      // Delete the pet's details first
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .collection("pets")
-          .doc(widget.petId)
-          .collection("pet_info")
-          .doc("details")
-          .delete();
+Future<void> _deletePet() async {
+  try {
+    final petRef = FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .collection("pets")
+        .doc(widget.petId);
 
-      // Delete the pet document itself
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .collection("pets")
-          .doc(widget.petId)
-          .delete();
+    final petInfoRef = petRef.collection("pet_info");
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Pet deleted successfully!"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } catch (e) {
-      print("Error deleting pet: $e");
+    final subcollections = ["details", "home", "data"];
+    for (String subDoc in subcollections) {
+      final docRef = petInfoRef.doc(subDoc);
+      final doc = await docRef.get();
+      if (doc.exists) {
+        await docRef.delete();
+      }
     }
+    final sessionsRef = petInfoRef.doc("data").collection("sessions");
+    final sessions = await sessionsRef.get();
+    for (final doc in sessions.docs) {
+      await doc.reference.delete();
+    }
+    await petRef.delete();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Pet and all data deleted successfully!"),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } catch (e, stack) {
+    print("❌ Error deleting pet and data: $e");
+    print(stack);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Failed to delete pet."),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
+
 
   void _confirmDeletePet(BuildContext context) {
     showDialog(

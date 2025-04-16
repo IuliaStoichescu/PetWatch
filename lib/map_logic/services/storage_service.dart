@@ -178,34 +178,62 @@ Future<void> saveEventMarkers(String petId, Map<String, Marker> markers) async {
 Future<Map<String, Marker>> loadEventMarkers(String petId, BuildContext context) async {
   final prefs = await SharedPreferences.getInstance();
   final key = '${petId}_event_markers';
-
-  if (!_isToday(prefs.getString('${petId}_saved_date'))) {
+  
+  print("Debug - Loading event markers for pet: $petId");
+  
+  // Get saved date and check if it's today with proper null handling
+  final savedDate = prefs.getString('${petId}_saved_date');
+  print("Debug - Event markers saved date: $savedDate");
+  
+  if (savedDate == null || !_isToday(savedDate)) {
+    print("Debug - No event markers from today, returning empty map");
     await prefs.remove(key);
     return {};
   }
 
   final List<String>? markerList = prefs.getStringList(key);
-  if (markerList == null) return {};
+  print("Debug - Found ${markerList?.length ?? 0} event markers");
+  
+  if (markerList == null || markerList.isEmpty) {
+    return {};
+  }
 
   Map<String, Marker> loadedMarkers = {};
   for (String markerJson in markerList) {
-    final data = jsonDecode(markerJson);
-    final id = data['id'];
-    final lat = data['lat'];
-    final lon = data['lon'];
-    final type = data['type'];
-
-    final marker = await MarkerFunctions.createEventMarkerFromData(
-      context: context,
-      id: id,
-      position: LatLng(lat, lon),
-      type: type,
-    );
-    loadedMarkers[id] = marker;
+    try {
+      final data = jsonDecode(markerJson);
+      
+      // Validate required fields
+      if (data['id'] == null || data['lat'] == null || 
+          data['lon'] == null || data['type'] == null) {
+        print("Debug - Skipping marker with missing data: $data");
+        continue;
+      }
+      
+      final id = data['id'].toString();
+      final lat = data['lat'] is double ? data['lat'] : double.parse(data['lat'].toString());
+      final lon = data['lon'] is double ? data['lon'] : double.parse(data['lon'].toString());
+      final type = data['type'].toString();
+      
+      print("Debug - Creating marker: id=$id, type=$type, pos=($lat,$lon)");
+      
+      final marker = await MarkerFunctions.createEventMarkerFromData(
+        context: context,
+        id: id,
+        position: LatLng(lat, lon),
+        type: type,
+      );
+      loadedMarkers[id] = marker;
+    } catch (e) {
+      print("Debug - Error processing marker: $e");
+      // Skip this marker but continue with others
+    }
   }
 
+  print("Debug - Successfully loaded ${loadedMarkers.length} markers");
   return loadedMarkers;
 }
+
 Future<void> clearEventMarkers(String petId) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove('${petId}_event_markers');

@@ -5,6 +5,7 @@ import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animarker/flutter_map_marker_animation.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -57,7 +58,7 @@ class _MapPageState extends State<MapPage> {
       wsSubscription; //pentru folosirea WebSocket cand receptorul nu are acces la internet pt primirea datelor gps
 
   double totalDistance = 0.0;
-
+  final double cameraBufferZone = 0.00002;
   String? previousState;
   int stateRepeatCount = 0;
   DateTime? outStartTime;
@@ -107,6 +108,9 @@ class _MapPageState extends State<MapPage> {
 
   Map<String, dynamic>? currentWeather;
   DateTime? lastWeatherFetch;
+
+  LatLng? lastFollowedLocation=null;
+  final double followThreshold = 5.0;
 
   double ax = 0.0;
   double ay = 0.0;
@@ -656,6 +660,39 @@ class _MapPageState extends State<MapPage> {
     return "$hours:$minutes:$seconds";
   }
 
+void _handleFollowModeCamera(LatLng newLocation) async {
+  if (!isFollowModeEnabled || !controller.isCompleted) return;
+
+  final movedDistance = lastFollowedLocation == null
+      ? double.infinity
+      : Geolocator.distanceBetween(
+          lastFollowedLocation!.latitude,
+          lastFollowedLocation!.longitude,
+          newLocation.latitude,
+          newLocation.longitude,
+        );
+
+  if (lastFollowedLocation == null || movedDistance > followThreshold) {
+    lastFollowedLocation = newLocation;
+
+    final mapCtrl = await controller.future; // <- wait for it to be ready
+
+    mapCtrl.animateCamera(CameraUpdate.newCameraPosition(
+      CameraPosition(
+        target: newLocation,
+        zoom: 17.0,
+        bearing: 0.0,
+        tilt: 0.0,
+      ),
+    ));
+
+    print("📍 Camera following pet. Distance moved: $movedDistance m");
+  } else {
+    print("✅ No camera update. Pet only moved $movedDistance m");
+  }
+}
+
+
 Future<void> _parseGPSData(String payload) async {
   try {
     RegExp regex = RegExp(
@@ -685,7 +722,7 @@ Future<void> _parseGPSData(String payload) async {
 
       CustomNotification? notif;
       bool addedToPath = false;
-
+        
       setState(() {
         latitude = lat;
         longitude = lon;
@@ -708,7 +745,6 @@ Future<void> _parseGPSData(String payload) async {
           addMarker(widget.petId, newLocation, widget.petImageUrl);
         } else if (!_markers.containsKey(widget.petId)) {
           addMarker(widget.petId, newLocation, widget.petImageUrl);
-          
           // Check if pet is leaving home area
           if (isPetHome) {
             double distanceFromHome = _distanceBetween(newLocation, widget.initialLocation);
@@ -729,7 +765,7 @@ Future<void> _parseGPSData(String payload) async {
           }
         } else {
           _updateMarkerPosition(widget.petId, newLocation);
-          
+          _handleFollowModeCamera(newLocation);
           // Also check on every location update if pet is leaving home
           if (isPetHome) {
             double distanceFromHome = _distanceBetween(newLocation, widget.initialLocation);
@@ -748,9 +784,6 @@ Future<void> _parseGPSData(String payload) async {
               notifications.add(notif!);
             }
           }
-        }
-        if (petPath.length == 1 || isFollowModeEnabled) {
-          mapController.animateCamera(CameraUpdate.newLatLng(newLocation));
         }
       });
       
@@ -778,7 +811,7 @@ Future<void> _parseGPSData(String payload) async {
           isPetHome: isPetHome,
         );
       }
-
+           
       if (geofenceManager.checkIfOutside(latitude, longitude)) {
         _showGeofenceAlert();
         final notif = CustomNotification(
@@ -1170,6 +1203,7 @@ Future<void> _parseGPSData(String payload) async {
       body: Stack(
         children: [
           Animarker(
+            shouldAnimateCamera: false,
             mapId: controller.future.then<int>(
                 (value) => value.mapId), // assign this in onMapCreated
             curve: Curves.easeInOut,
@@ -1181,12 +1215,12 @@ Future<void> _parseGPSData(String payload) async {
               circles: geofenceManager.geofenceCircle != null
                   ? {geofenceManager.geofenceCircle!}
                   : {},
-              initialCameraPosition:
-                  CameraPosition(target: widget.initialLocation, zoom: 14),
+              initialCameraPosition: CameraPosition(target: widget.initialLocation, zoom: 14),
               onMapCreated: (controller) {
                 mapController = controller;
                 this.controller.complete(controller);
                 _addHomeMarker(widget.initialLocation);
+              /*  if (latitude == 0.0 && longitude == 0.0) {
                 Future.delayed(Duration(milliseconds: 300), () {
                     mapController.animateCamera(
                       CameraUpdate.newCameraPosition(
@@ -1197,7 +1231,7 @@ Future<void> _parseGPSData(String payload) async {
                       ),
                     );
                     setState(() {});
-                });
+                });}*/
               },
               onTap: (LatLng tappedPoint) {
                 if (isSettingGeofence) {
@@ -1351,13 +1385,12 @@ Future<void> _parseGPSData(String payload) async {
                     onPressed: () {
                       setState(() {
                         isFollowModeEnabled = !isFollowModeEnabled;
-                      });
-                      
-                      // If enabling follow mode, immediately center on pet
-                      if (isFollowModeEnabled && latitude != 0.0 && longitude != 0.0) {
-                        _centerToPetMarker();
-                      }
-                      
+                       
+                         });
+                          if(isFollowModeEnabled && latitude!=0.0 && longitude!=0.0)
+                         {
+                              _centerToPetMarker();
+                         }
                       // Show feedback to user
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -1515,9 +1548,9 @@ Future<void> _parseGPSData(String payload) async {
                     outTimer?.cancel();
 
                     setState(() {
-                      totalOutDuration +=
-                          DateTime.now().difference(outStartTime!);
+                      totalOutDuration +=DateTime.now().difference(outStartTime!);
                       outStartTime = null;
+                      startOutTimer(); 
                       isPetHome = true;
                       totalDistance = 0.0;
                       petPath.clear();
