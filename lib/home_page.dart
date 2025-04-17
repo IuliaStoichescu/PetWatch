@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:pet_watch/helpers/greeting_util.dart';
 import 'package:pet_watch/helpers/square_fab.dart';
+import 'package:pet_watch/history_page.dart';
 import 'package:pet_watch/pet_add/add_pet.dart';
 import 'package:pet_watch/pet_add/pet_card.dart';
 
@@ -17,14 +19,6 @@ class _HomePageState extends State<HomePage> {
 
   void logUserout() {
     FirebaseAuth.instance.signOut();
-  }
-
-  String getUserFirstName(final user) {
-    String firstName = "";
-    if (user != null && user.email != null) {
-      firstName = getFirstNameFromEmail(user.email!);
-    }
-    return firstName;
   }
 
   void addItem() {
@@ -64,14 +58,25 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Icon(Icons.person, size: 25, color: Colors.white),
                 SizedBox(width: 15),
-                Text(
-                  "Glad to have you, ${getUserFirstName(user)}",
-                  style: TextStyle(color: Colors.white),
+                Expanded(
+                  child: Text(
+                   getTimeBasedGreeting(user),
+                    style: TextStyle(color: Colors.white,fontSize: 18),
+                  ),
                 ),
               ],
             ),
             centerTitle: true,
             actions: [
+              IconButton(
+                icon:Icon(Icons.history,size: 25,color: Colors.white,),
+                onPressed: (){
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HistoryPage()),
+                  );
+                } 
+              ),
               IconButton(
                 onPressed: logUserout,
                 icon: Icon(Icons.logout, color: Colors.white),
@@ -96,20 +101,6 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
     );
-  }
-}
-
-String getFirstNameFromEmail(String email) {
-  if (email.contains('@')) {
-    String username = email.split('@')[0];
-    return username.split('.')[0].capitalize();
-  }
-  return email;
-}
-
-extension StringExtension on String {
-  String capitalize() {
-    return "${this[0].toUpperCase()}${substring(1)}";
   }
 }
 

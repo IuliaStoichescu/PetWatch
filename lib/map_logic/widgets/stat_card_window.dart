@@ -4,7 +4,7 @@ import 'package:pet_watch/map_logic/widgets/stat_card.dart';
 class StatCardWindow extends StatelessWidget {
   final double totalDistance; // in meters
   final String formattedDuration;
-  StatCardWindow({super.key,required this.totalDistance,required this.formattedDuration});
+  const StatCardWindow({super.key,required this.totalDistance,required this.formattedDuration});
 
   @override
   Widget build(BuildContext context) {

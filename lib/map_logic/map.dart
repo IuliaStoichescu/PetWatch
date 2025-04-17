@@ -59,6 +59,7 @@ class _MapPageState extends State<MapPage> {
   WebSocketChannel? wsChannel;
   StreamSubscription?
       wsSubscription; //pentru folosirea WebSocket cand receptorul nu are acces la internet pt primirea datelor gps
+  final GlobalKey _mapBoundaryKey = GlobalKey();
 
   double totalDistance = 0.0;
   final double cameraBufferZone = 0.00002;
@@ -112,7 +113,7 @@ class _MapPageState extends State<MapPage> {
   Map<String, dynamic>? currentWeather;
   DateTime? lastWeatherFetch;
 
-  LatLng? lastFollowedLocation=null;
+  LatLng? lastFollowedLocation;
   final double followThreshold = 5.0;
 
   double ax = 0.0;
@@ -1156,6 +1157,7 @@ Future<void> _parseGPSData(String payload) async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: isDarkMap? ui.Color.fromARGB(255, 24, 38, 96): Colors.white,
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(60),
         child: Container(
