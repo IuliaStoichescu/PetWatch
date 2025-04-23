@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lottie/lottie.dart';
+import 'package:pet_watch/map_logic/pet_heatmap_page.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -133,6 +135,33 @@ Widget _buildDrawer() {
                   return Column(
                     children: [
                       ListTile(
+                        trailing: ElevatedButton.icon(
+                          icon: Icon(Icons.insights,color: Colors.red,),
+                          label: Text("Heatmap", style: TextStyle(fontSize: 12,color: Colors.red)),
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            textStyle: TextStyle(fontSize: 12),
+                          ),
+                          onPressed: () async {
+                            final home = await _getHome(petId);
+                            if (home != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PetHeatmapPage(
+                                    petId: petId,
+                                    petName: name,
+                                    homeLocation: home,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("No home location found for this pet.")),
+                              );
+                            }
+                          },
+                        ),
                         leading: CircleAvatar(
                           backgroundImage: imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
                           child: imageUrl.isEmpty ? Icon(Icons.pets) : null,
@@ -241,6 +270,24 @@ Widget _buildDrawer() {
     final s = twoDigits(duration.inSeconds.remainder(60));
     return "$h:$m:$s";
   }
+
+  Future<LatLng?> _getHome(String petId) async {
+  final doc = await FirebaseFirestore.instance
+      .collection("users")
+      .doc(user.uid)
+      .collection("pets")
+      .doc(petId)
+      .collection("pet_info")
+      .doc("home")
+      .get();
+
+  if (doc.exists && doc.data() != null) {
+    final data = doc.data()!;
+    return LatLng(data['lat'], data['lng']);
+  }
+  return null;
+}
+
 
 }
 
