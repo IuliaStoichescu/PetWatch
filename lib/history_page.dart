@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lottie/lottie.dart';
 import 'package:pet_watch/map_logic/pet_heatmap_page.dart';
+import 'package:pet_watch/session_analytics_page.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -238,6 +239,17 @@ Widget _buildDrawer() {
 
             return Card(
               child: ListTile(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SessionAnalyticsPage(
+                        petId: selectedPetId!,
+                        currentSession: data, // Pass the session's full document data
+                      ),
+                    ),
+                  );
+                },
                 leading: CircleAvatar(
                   backgroundImage: selectedPetImage != null && selectedPetImage!.isNotEmpty
                       ? NetworkImage(selectedPetImage!)
