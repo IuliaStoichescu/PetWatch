@@ -19,15 +19,15 @@ class NotificationService {
 
     //for ios
     const initSettingsiOS = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false
+      requestAlertPermission: true,
+      requestBadgePermission: true
     );
 
     const initSettings = InitializationSettings(
       android: initSettingsAndroid,
       iOS: initSettingsiOS
     );
-
+    
     await notificationsPlugin.initialize(initSettings);
   }
 

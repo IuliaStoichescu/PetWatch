@@ -21,7 +21,6 @@ import 'package:pet_watch/map_logic/services/notification_service.dart';
 import 'package:pet_watch/map_logic/widgets/floating_buttons_panel.dart';
 import 'package:pet_watch/map_logic/widgets/marker_functions.dart';
 import 'package:pet_watch/map_logic/widgets/notifications_list_page.dart';
-import 'package:pet_watch/map_logic/widgets/stat_card.dart';
 import 'package:pet_watch/map_logic/widgets/stat_card_window.dart';
 import 'package:pet_watch/map_logic/widgets/weather_info_box.dart';
 import 'package:web_socket_channel/io.dart';
@@ -68,7 +67,7 @@ class _MapPageState extends State<MapPage> {
   DateTime? outStartTime;
   Duration totalOutDuration = Duration.zero;
   bool isPetHome = true;
-
+  int geofenceExitCount = 0;
   bool useCloud = true; // Initially tries Cloud MQTT
   int retryCount = 0; // Retry attempts counter
   String latestMessage = "No incoming messages from MQTT yet";
@@ -134,6 +133,9 @@ class _MapPageState extends State<MapPage> {
   Timer? outTimer;
   bool isDarkMap = false;
   String? _currentMapStyle;
+
+   int rssi = 0;
+   double snr = 0.0;
 
 Future<void> _setMapStyle() async {
   final stylePath = isDarkMap
@@ -285,6 +287,8 @@ Future<void> _setMapStyle() async {
     final sessionData = await storageService.loadSessionState(widget.petId);
     final lastMarkerPos =await storageService.loadLastKnownMarker(widget.petId);
     final eventMarkers = await storageService.loadEventMarkers(widget.petId, context);
+    geofenceExitCount = await storageService.loadGeofenceExitCount(widget.petId);
+
     // Check if we have a valid session in progress
     bool hasValidSession = sessionData['outStartTime'] != null;
     // Only add marker if coordinates are valid (not 0,0)
@@ -352,6 +356,7 @@ Future<void> _setMapStyle() async {
       "path": pathData,
       "events": eventList,
       "weather": weatherData,
+      "geofence_exit_count": geofenceExitCount,
     };
 
     await FirebaseFirestore.instance
@@ -456,6 +461,7 @@ Future<void> _setMapStyle() async {
       client!.subscribe("gps/tracker", MqttQos.atMostOnce);
       client!.subscribe("accel/tracker", MqttQos.atMostOnce);
       client!.subscribe("event/tracker", MqttQos.atMostOnce);
+      client!.subscribe("signal/tracker", MqttQos.atMostOnce);
       _listenToMessages(); // Start listening to messages
       setState(() {}); // Update UI instantly after connecting
       print("Connected to MQTT: $broker");
@@ -530,8 +536,38 @@ Future<void> _setMapStyle() async {
         print("Received Event data: $payload");
         _parseEventData(payload);
       }
+      else if(topic == "signal/tracker"){
+        _parseSignalData(payload);
+      }
     });
   }
+
+  void _parseSignalData(String payload) {
+  try {
+    final rssiRegex = RegExp(r'RSSI\s*:\s*(-?\d+)');
+    final snrRegex = RegExp(r'SNR\s*:\s*(-?\d+\.?\d*)');
+
+    final rssiMatch = rssiRegex.firstMatch(payload);
+    final snrMatch = snrRegex.firstMatch(payload);
+
+    if (rssiMatch != null && snrMatch != null) {
+      rssi = int.parse(rssiMatch.group(1)!);
+      snr = double.parse(snrMatch.group(1)!);
+
+      print("📡 Signal Strength: RSSI = $rssi dBm, SNR = $snr dB");
+
+      setState(() {
+        latestMessage = "Signal Info: RSSI = $rssi dBm, SNR = $snr dB";
+      });
+
+    } else {
+      print("RSSI or SNR not found in payload: $payload");
+    }
+  } catch (e) {
+    print("Error parsing signal data: $e");
+  }
+}
+
 
   void _parseAccelData(String payload) async {
     try {
@@ -910,6 +946,8 @@ Future<void> _parseGPSData(String payload) async {
       }
            
       if (geofenceManager.checkIfOutside(latitude, longitude)) {
+        geofenceExitCount++;
+        await storageService.saveGeofenceExitCount(widget.petId, geofenceExitCount);
         _showGeofenceAlert();
         final notif = CustomNotification(
           title: "📍 Geofence Alert",
@@ -1031,6 +1069,65 @@ Future<void> _parseGPSData(String payload) async {
                       Text("State: $state",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
                       Text("Time: $timeAcc",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
                     ],
+                    SizedBox(height: 5,),
+                    Text("Signal and Radio Noise Status",style: TextStyle(fontWeight: FontWeight.bold,color: isDarkMap? Colors.white:Colors.black)),
+                    Divider(),
+                    if(rssi == 0 && snr==0.0)...[
+                      Text("Signal and Noise not recorded yet!",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
+                    ]
+                    else ...[
+                      if(rssi>=-30 || rssi>=-60)...[
+                        Row(
+                          children: [
+                            Icon(Icons.circle,color: Colors.greenAccent,size: 10),
+                            SizedBox(width: 10,),
+                            Text("Signal is excelent",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
+                          ],
+                        ),
+                      ]else if(rssi>=-61 || rssi>=-90)...[
+                        Row(
+                          children: [
+                            Icon(Icons.circle,color: Colors.yellow,size: 10),
+                            SizedBox(width: 10,),
+                            Text("Signal is decent",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
+                          ],
+                        ),
+                      ]else if(rssi<=-91)...[
+                        Row(
+                          children: [
+                            Icon(Icons.circle,color: Colors.red,size: 10,),
+                            SizedBox(width: 10,),
+                            Text("Signal is weak",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
+                          ],
+                        ),
+                      ],
+
+                       if(snr>8)...[
+                        Row(
+                          children: [
+                            Icon(Icons.circle,color: Colors.greenAccent,size: 10),
+                            SizedBox(width: 10,),
+                            Text("Radio Noise is excelent",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
+                          ],
+                        ),
+                      ]else if(snr>5)...[
+                        Row(
+                          children: [
+                            Icon(Icons.circle,color: Colors.yellow,size: 10),
+                            SizedBox(width: 10,),
+                            Text("Radio Noise is good",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
+                          ],
+                        ),
+                      ]else if(snr<0)...[
+                        Row(
+                          children: [
+                            Icon(Icons.circle,color: Colors.red,size: 10),
+                            SizedBox(width: 10,),
+                            Text("Radio Noise is bad",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
+                          ],
+                        ),
+                      ]
+                    ] ,
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -1383,6 +1480,7 @@ Future<void> _parseGPSData(String payload) async {
                 icon: Icon(Icons.home, color: Colors.black),
                 onPressed: () async {
                   if (outStartTime != null) {
+                    await storageService.saveGeofenceExitCount(widget.petId, 0);
                     await storageService.saveTrackingStatus(widget.petId, false);
                     await _saveSessionToFirebase();
                     await storageService.clearSessionState(widget.petId);
@@ -1394,6 +1492,7 @@ Future<void> _parseGPSData(String payload) async {
                     outTimer?.cancel();
 
                     setState(() {
+                      geofenceExitCount = 0;
                       totalOutDuration +=DateTime.now().difference(outStartTime!);
                       outStartTime = null;
                       startOutTimer(); 

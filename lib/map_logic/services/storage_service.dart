@@ -233,6 +233,16 @@ Future<Map<String, Marker>> loadEventMarkers(String petId, BuildContext context)
   print("Debug - Successfully loaded ${loadedMarkers.length} markers");
   return loadedMarkers;
 }
+Future<void> saveGeofenceExitCount(String petId, int count) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setInt('${petId}_geofence_exit_count', count);
+}
+
+Future<int> loadGeofenceExitCount(String petId) async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getInt('${petId}_geofence_exit_count') ?? 0;
+}
+
 
 Future<void> clearEventMarkers(String petId) async {
   final prefs = await SharedPreferences.getInstance();

@@ -160,7 +160,7 @@ Widget _buildDrawer() {
 
                 },
               );
-            }).toList(),
+            }),
           ],
         );
       },

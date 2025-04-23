@@ -110,6 +110,7 @@ Future<void> _cleanupSession() async {
   await storageService.savePolyline(widget.petId, []);
   await storageService.saveLastKnownMarker(widget.petId, LatLng(0, 0));
   await storageService.clearEventMarkers(widget.petId);
+  await storageService.saveGeofenceExitCount(widget.petId, 0);
 }
 
   @override
@@ -184,6 +185,7 @@ Future<void> _cleanupSession() async {
                           if (!value) { // When turning tracking off
                             try {
                               final sessionData = await storageService.loadSessionState(widget.petId);
+                              final int geofenceExitCount = await storageService.loadGeofenceExitCount(widget.petId);
                               print("Debug - loaded sessionData: $sessionData");
                               
                               // Check if we have a valid session with start time
@@ -247,6 +249,7 @@ Future<void> _cleanupSession() async {
                                 "distance_meters": sessionData['distance'] ?? 0.0,
                                 "path": pathData,
                                 "events": eventList,
+                                "geofence_exits": geofenceExitCount
                               };
                               
                               // Add weather data if available
