@@ -9,8 +9,10 @@ import 'package:pet_watch/login_signin/services/storage_service.dart';
 import 'package:provider/provider.dart';
 
 class AddPet extends StatefulWidget {
-  const AddPet({super.key});
-
+  final String? petId;
+  final Map<String, dynamic>? existingPetData;
+  const AddPet({super.key, this.petId, this.existingPetData});
+  
   @override
   State<AddPet> createState() => _AddPetState();
 }
@@ -27,17 +29,123 @@ class _AddPetState extends State<AddPet> {
   String ?selectedAnimal;
   String? selectedBreed;
   DateTime? birthDate;
+  
+  final List<String> dogBreeds = [
+  'Labrador Retriever',
+  'German Shepherd',
+  'Golden Retriever',
+  'French Bulldog',
+  'Bulldog',
+  'Poodle',
+  'Beagle',
+  'Rottweiler',
+  'Yorkshire Terrier',
+  'Boxer',
+  'Dachshund',
+  'Siberian Husky',
+  'Great Dane',
+  'Doberman Pinscher',
+  'Cavalier King Charles Spaniel',
+  'Miniature Schnauzer',
+  'Shih Tzu',
+  'Australian Shepherd',
+  'Pomeranian',
+  'Boston Terrier',
+  'Havanese',
+  'Shetland Sheepdog',
+  'Bernese Mountain Dog',
+  'Cocker Spaniel',
+  'Chihuahua',
+  'Basset Hound',
+  'Border Collie',
+  'Maltese',
+  'Akita',
+  'Weimaraner',
+  'Vizsla',
+  'St. Bernard',
+  'Newfoundland',
+  'Collie',
+  'Alaskan Malamute',
+  'Bull Terrier',
+  'English Springer Spaniel',
+  'Whippet',
+  'Papillon',
+  'Pointer',
+  'Bichon Frise',
+  'Belgian Malinois',
+  'Shiba Inu',
+  'Rhodesian Ridgeback',
+  'Cane Corso',
+  'Australian Cattle Dog',
+  'Chow Chow',
+  'English Setter',
+  'Irish Setter',
+  'Unknown',
+];
+
+final List<String> catBreeds = [
+  'Siamese',
+  'Persian',
+  'Maine Coon',
+  'Ragdoll',
+  'Bengal',
+  'Sphynx',
+  'British Shorthair',
+  'Scottish Fold',
+  'Abyssinian',
+  'Birman',
+  'Oriental Shorthair',
+  'American Shorthair',
+  'Norwegian Forest Cat',
+  'Devon Rex',
+  'Russian Blue',
+  'Savannah',
+  'Himalayan',
+  'Manx',
+  'Turkish Van',
+  'Balinese',
+  'Exotic Shorthair',
+  'Tonkinese',
+  'Chartreux',
+  'Bombay',
+  'Cornish Rex',
+  'Selkirk Rex',
+  'Egyptian Mau',
+  'Japanese Bobtail',
+  'LaPerm',
+  'Munchkin',
+  'Ocicat',
+  'Ragamuffin',
+  'Turkish Angora',
+  'Unknown',
+];
+
 
   @override
   void initState(){
     super.initState();
     fetchImages();
+
+    if (widget.existingPetData != null) {
+    final data = widget.existingPetData!;
+    nameController.text = data['name'] ?? '';
+    aboutController.text = data['about'] ?? '';
+    kilosController.text = data['kilograms']?.toString().replaceAll(' kg', '') ?? '';
+    selectedSex = data['sex'];
+    selectedAnimal = data['animalType'] == 'Other' ? 'Other' : data['animalType'];
+    selectedBreed = data['breed'];
+    birthDate = data['birthDate'] != null && data['birthDate'] != "Not provided"
+        ? DateTime.tryParse(data['birthDate'])
+        : null;
+    customAnimalController.text = selectedAnimal == 'Other' ? data['animalType'] ?? '' : '';
+  }
   }
 
-  void savePetInfo(List<String> image) async{
-     final User user = FirebaseAuth.instance.currentUser!;
+  void savePetInfo(List<String> image) async {
+  final User user = FirebaseAuth.instance.currentUser!;
   FirebaseFirestore firestore = FirebaseFirestore.instance;
   DocumentReference userRef = firestore.collection("users").doc(user.uid);
+  final bool isEdit = widget.petId != null;
 
   try {
     DocumentSnapshot userSnapshot = await userRef.get();
@@ -49,39 +157,60 @@ class _AddPetState extends State<AddPet> {
       });
     }
 
-    DocumentReference petRef = await userRef.collection("pets").add({
-      "timestamp": FieldValue.serverTimestamp(),
-    });
+    if (isEdit) {
+      // Edit existing pet
+      final petRef = userRef.collection("pets").doc(widget.petId);
+      await petRef.collection("pet_info").doc("details").update({
+        "name": nameController.text.trim(),
+        "sex": selectedSex ?? "Unknown",
+        "imageUrl": image.isNotEmpty
+            ? image.last
+            : widget.existingPetData?["imageUrl"] ?? "",
+        "about": aboutController.text.trim(),
+        "kilograms": "${kilosController.text.trim()} kg",
+        "animalType": selectedAnimal == 'Other'
+            ? customAnimalController.text.trim()
+            : selectedAnimal,
+        "breed": selectedBreed ?? "Unknown",
+        "birthDate": birthDate?.toIso8601String() ?? "Not provided",
+      });
+    } else {
+      // Create new pet
+      DocumentReference petRef = await userRef.collection("pets").add({
+        "timestamp": FieldValue.serverTimestamp(),
+      });
 
-    // 🔹 Ensure "about" text is correctly trimmed and saved
-    await petRef.collection("pet_info").doc("details").set({
-      "name": nameController.text.trim(),
-      "sex": selectedSex ?? "Unknown",
-      "imageUrl": image.isNotEmpty ? image.last : "",
-      "about": aboutController.text.trim(), 
-      "kilograms": "${kilosController.text.trim()} kg",
-      "animalType": selectedAnimal =='Other'? customAnimalController.text.trim():selectedAnimal,
-      "breed":selectedBreed?? "Unknown",
-      "birthDate": birthDate?.toIso8601String()??"Not provided",
-    });
+      await petRef.collection("pet_info").doc("details").set({
+        "name": nameController.text.trim(),
+        "sex": selectedSex ?? "Unknown",
+        "imageUrl": image.isNotEmpty ? image.last : "",
+        "about": aboutController.text.trim(),
+        "kilograms": "${kilosController.text.trim()} kg",
+        "animalType": selectedAnimal == 'Other'
+            ? customAnimalController.text.trim()
+            : selectedAnimal,
+        "breed": selectedBreed ?? "Unknown",
+        "birthDate": birthDate?.toIso8601String() ?? "Not provided",
+      });
+    }
 
-    Navigator.pop(context,true); // Close the dialog after saving
+    Navigator.pop(context, true); // Close the form and return to previous screen
 
+    // Clear the form
     setState(() {
       nameController.clear();
       aboutController.clear();
       kilosController.clear();
       selectedSex = null;
-      selectedAnimal=null;
-      selectedBreed=null;
-      birthDate=null;
+      selectedAnimal = null;
+      selectedBreed = null;
+      birthDate = null;
       customAnimalController.clear();
     });
-
   } catch (e) {
     print("Error saving pet info: $e");
   }
-  }
+}
 
 
   Future<void> fetchImages() async{
@@ -90,6 +219,7 @@ class _AddPetState extends State<AddPet> {
 final minWidth = 500.0;
   @override
   Widget build(BuildContext context) {
+    final bool isEdit = widget.petId != null;
     final screenWidth = MediaQuery.of(context).size.width;
     return Consumer<StorageService>(
       builder: (context,storageService,child){
@@ -117,16 +247,16 @@ final minWidth = 500.0;
                             SizedBox(width: 20,),
                             Column(
                               children: [
-                                Text("Let's create ",style: TextStyle(fontSize: 20,color: Colors.white),),
+                                Text(isEdit? "Let's edit ": "Let's create",style: TextStyle(fontSize: 20,color: Colors.white),),
                                 Text("your pet's profile!",style: TextStyle(fontSize: 20,color: Colors.white),),
-                                Text("(Guide. Continue below ⬇️)",style: TextStyle(color: Colors.white))
+                                Text(!isEdit? "(Guide. Continue below ⬇️)":"",style: TextStyle(color: Colors.white))
                               ],
                             ),
                             Lottie.asset("assets/cat_play.json",width: 150,height: 150),
                           ],
                         ),
                     ),
-                    Text("🔷Once your pet’s profile is ready, ",style: TextStyle(color: Colors.white)),
+                    if(!isEdit)...[ Text("🔷Once your pet’s profile is ready, ",style: TextStyle(color: Colors.white)),
                     Text("you'll see a toggle switch next to it",style: TextStyle(color: Colors.white)),
                     SizedBox(height: 10,),
                     Divider(thickness: 0.5,color: const Color.fromARGB(255, 44, 44, 44),),
@@ -143,8 +273,10 @@ final minWidth = 500.0;
                     Text("means the device is successfully connected!",style: TextStyle(color: Colors.white)),
                     Text(" Now, you’re all set to track your pet’s location",style: TextStyle(color: Colors.white)),
                     Text(" in real-time",style: TextStyle(color: Colors.white)),
-                    Image.asset("assets/on.png",width: 150,height: 150,),
-                    SizedBox(height: 30,),
+                    Image.asset("assets/on.png",width: 150,height: 150,),SizedBox(height: 30,),]
+                    else...[
+
+                    ],                 
                     Text("Pet Profile",style: TextStyle(color: Colors.white,fontSize: 30,decoration: TextDecoration.underline,decorationColor: const Color.fromARGB(255, 255, 255, 255),),),
                     SizedBox(height: 30,),
                     Mytextfield(controller: nameController,hintText: "PetName",prefixIcon: Icon(Icons.pets,color: Colors.white,),obscureText: false,),
@@ -206,13 +338,14 @@ final minWidth = 500.0;
                           dropdownColor: Colors.grey[700], 
                       ),
                     ),
-                    SizedBox(height: 30,),
+                    SizedBox(height: 20,),
                     if (selectedAnimal == '🐶 Dog')
                       SizedBox(
                         width: 265, 
                         child: DropdownButtonFormField<String>(
                           value: selectedBreed,
-                          items: ['Labrador', 'Poodle', 'Unknown'].map((breed) => DropdownMenuItem(value: breed, child: Text(breed))).toList(),
+                          isExpanded: true,
+                          items: dogBreeds.map((breed) => DropdownMenuItem(value: breed, child: Text(breed))).toList(),
                           onChanged: (value) => setState(() => selectedBreed = value),
                           decoration: InputDecoration(labelText: "Breed",
                           labelStyle: TextStyle(color: Colors.white), 
@@ -232,7 +365,8 @@ final minWidth = 500.0;
                         width: 265,
                         child: DropdownButtonFormField<String>(
                           value: selectedBreed,
-                          items: ['Siamese', 'Persian', 'Unknown'].map((breed) => DropdownMenuItem(value: breed, child: Text(breed))).toList(),
+                          isExpanded: true,
+                          items: catBreeds.map((breed) => DropdownMenuItem(value: breed, child: Text(breed))).toList(),
                           onChanged: (value) => setState(() => selectedBreed = value),
                           decoration: InputDecoration(labelText: "Breed",
                           labelStyle: TextStyle(color: Colors.white), 
@@ -328,7 +462,7 @@ final minWidth = 500.0;
                       ],
                     ),
                     SizedBox(height: 20,),
-                    MyButtonForCreation(onTap:() => savePetInfo(imageUrls),text :"Create profile"),
+                    MyButtonForCreation(onTap:() => savePetInfo(imageUrls),text: isEdit ? "Save Changes" : "Create Profile"),
                   ],
                 ),
               ),

@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lottie/lottie.dart' as lottie;
 import 'package:pet_watch/map_logic/map.dart';
 import 'package:pet_watch/map_logic/services/storage_service.dart';
+import 'package:pet_watch/pet_add/add_pet.dart';
 import 'package:pet_watch/set_home_location.dart';
 
 
@@ -351,7 +352,20 @@ Future<void> _cleanupSession() async {
                 ),
               ],
             ),
-      
+            Positioned(
+              top: -5,
+              right: 30,
+              child: IconButton(
+                icon: Icon(Icons.edit, color: Colors.green),
+                onPressed: () {
+              showAddPetPopup(
+                context,
+                petId: widget.petId,
+                existingData: widget.petDetails,
+              );
+            },
+              ),
+            ),
             Positioned(
               top: -5,
               right: 2,
@@ -365,6 +379,40 @@ Future<void> _cleanupSession() async {
       ),
     );
   }
+
+  Future<void> showAddPetPopup(BuildContext context, {String? petId, Map<String, dynamic>? existingData}) async {
+  bool? petSaved = await showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: AddPet(
+          petId: petId,
+          existingPetData: existingData,
+        ),
+      );
+    },
+  );
+
+  if (petSaved == true) {
+    showSnackbar(context, "Pet profile saved successfully!", Colors.green);
+  }
+}
+void showSnackbar(BuildContext context, String message, Color color) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message, style: TextStyle(color: Colors.white)),
+      backgroundColor: color,
+      duration: Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating, 
+      margin: EdgeInsets.all(20), 
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10), 
+      ),
+    ),
+  );
+}
 
 Future<void> _deletePet() async {
   try {
