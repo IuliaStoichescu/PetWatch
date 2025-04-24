@@ -71,7 +71,9 @@ class _PetHeatmapPageState extends State<PetHeatmapPage> {
     print("⚠️ Skipping session ${session.id}: No valid 'path' field found.");
     continue;
   }
-  else print("✅ Valid path found in session ${session.id}: ${data['path']}");
+  else {
+    print("✅ Valid path found in session ${session.id}: ${data['path']}");
+  }
 
 
   final path = data['path'] as List<dynamic>;

@@ -120,6 +120,30 @@ Future<void> _cleanupSession() async {
     String weight = widget.petDetails["kilograms"] ?? "N/A";
     String about = widget.petDetails["about"] ?? "No description available";
     String imageUrl = widget.petDetails["imageUrl"] ?? "";
+    String breed = widget.petDetails["breed"] ?? "Unknown";
+    String animalType = widget.petDetails["animalType"] ?? "Unknown";
+    String birthDateString = widget.petDetails["birthDate"] ?? "Not provided";
+
+    String ageDisplay = "Unknown";
+    if (birthDateString != "Not provided") {
+      try {
+        DateTime birthDate = DateTime.parse(birthDateString);
+        Duration ageDuration = DateTime.now().difference(birthDate);
+        int years = ageDuration.inDays ~/ 365;
+        int months = (ageDuration.inDays % 365) ~/ 30;
+
+        if (years > 0) {
+          ageDisplay = "$years year${years > 1 ? 's' : ''}";
+          if (months > 0) ageDisplay += " $months month${months > 1 ? 's' : ''}";
+        } else if (months > 0) {
+          ageDisplay = "$months month${months > 1 ? 's' : ''}";
+        } else {
+          ageDisplay = "Less than a month";
+        }
+      } catch (e) {
+        ageDisplay = "Invalid date";
+      }
+    }
 
     bool isFemale = sex.toLowerCase() == "female";
     IconData genderIcon = isFemale ? Icons.female : Icons.male;
@@ -153,6 +177,9 @@ Future<void> _cleanupSession() async {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text("Name: $petName", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      Text("Animal: $animalType", style: TextStyle(fontSize: 16)),
+                      Text("Breed: $breed", style: TextStyle(fontSize: 16)),
+                      Text("Age: $ageDisplay", style: TextStyle(fontSize: 16)),
                       Row(
                         children: [
                           Text("Sex: $sex", style: TextStyle(fontSize: 16)),

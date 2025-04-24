@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:pet_watch/map_logic/pet_heatmap_page.dart';
 import 'package:pet_watch/session_analytics_page.dart';
@@ -18,6 +19,8 @@ class _HistoryPageState extends State<HistoryPage> {
   String? selectedPetId;
   String? selectedPetName;
   String? selectedPetImage;
+  final DateFormat dateFormatter = DateFormat('dd/MM/yyyy');
+  final DateFormat timeFormatter = DateFormat('HH:mm');
 
 @override
 Widget build(BuildContext context) {
@@ -228,6 +231,7 @@ Widget _buildDrawer() {
             ));
         }
 
+
         return ListView(
           padding: EdgeInsets.all(16),
           children: snapshot.data!.docs.map((doc) {
@@ -258,11 +262,12 @@ Widget _buildDrawer() {
                       ? Icon(Icons.pets)
                       : null,
                 ),
-                title: Text("Start: ${start.toLocal()}"),
+                title: Text("📅 ${dateFormatter.format(start)}"),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("End: ${end.toLocal()}"),
+                    Text("⏱ Start: ${timeFormatter.format(start)}"),
+                     Text("⏲ End: ${timeFormatter.format(end)}"),
                     Text("Duration: ${_formatDuration(duration)}"),
                     Text("Distance: ${(distance / 1000).toStringAsFixed(2)} km"),
                   ],

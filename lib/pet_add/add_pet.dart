@@ -20,22 +20,19 @@ class _AddPetState extends State<AddPet> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController aboutController = TextEditingController();
   final TextEditingController kilosController = TextEditingController();
+  final TextEditingController customAnimalController = TextEditingController();
   String? selectedSex;
   String imageUrl = ""; 
   int kilos=0;
+  String ?selectedAnimal;
+  String? selectedBreed;
+  DateTime? birthDate;
 
   @override
   void initState(){
     super.initState();
     fetchImages();
   }
-
-  /*void dispose(){
-    nameController.dispose();
-    aboutController.dispose();
-    kilosController.dispose();
-    super.dispose();
-  }*/
 
   void savePetInfo(List<String> image) async{
      final User user = FirebaseAuth.instance.currentUser!;
@@ -62,7 +59,10 @@ class _AddPetState extends State<AddPet> {
       "sex": selectedSex ?? "Unknown",
       "imageUrl": image.isNotEmpty ? image.last : "",
       "about": aboutController.text.trim(), 
-      "kilograms": "${kilosController.text.trim()} kg"
+      "kilograms": "${kilosController.text.trim()} kg",
+      "animalType": selectedAnimal =='Other'? customAnimalController.text.trim():selectedAnimal,
+      "breed":selectedBreed?? "Unknown",
+      "birthDate": birthDate?.toIso8601String()??"Not provided",
     });
 
     Navigator.pop(context,true); // Close the dialog after saving
@@ -72,6 +72,10 @@ class _AddPetState extends State<AddPet> {
       aboutController.clear();
       kilosController.clear();
       selectedSex = null;
+      selectedAnimal=null;
+      selectedBreed=null;
+      birthDate=null;
+      customAnimalController.clear();
     });
 
   } catch (e) {
@@ -164,7 +168,7 @@ final minWidth = 500.0;
                           });
                         },
                         decoration: InputDecoration(
-                          //labelText: "Sex",
+                          labelText: "Gender",
                           labelStyle: TextStyle(color: Colors.white), 
                           filled: true,
                           fillColor: const Color.fromARGB(98, 255, 255, 255), 
@@ -177,6 +181,101 @@ final minWidth = 500.0;
                       ),
                     ),
                     SizedBox(height: 30,),
+                    SizedBox(
+                      width: 265, 
+                      child: DropdownButtonFormField<String>(
+                        value: selectedAnimal,
+                        items: ['🐶 Dog','🐱 Cat','Other'].map((animal) => 
+                        DropdownMenuItem(
+                          
+                          value: animal,child: Text(animal,style: TextStyle(color: Colors.white),))).toList(),
+                        onChanged: (value)=>setState(() {
+                          selectedAnimal=value;
+                          selectedBreed = null;
+                        }),
+                        decoration: InputDecoration(
+                          labelText: "Animal Type",
+                           labelStyle: TextStyle(color: Colors.white), 
+                          filled: true,
+                          fillColor: const Color.fromARGB(98, 255, 255, 255), 
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10), 
+                            borderSide: BorderSide.none, 
+                          ),
+                          ),
+                          dropdownColor: Colors.grey[700], 
+                      ),
+                    ),
+                    SizedBox(height: 30,),
+                    if (selectedAnimal == '🐶 Dog')
+                      SizedBox(
+                        width: 265, 
+                        child: DropdownButtonFormField<String>(
+                          value: selectedBreed,
+                          items: ['Labrador', 'Poodle', 'Unknown'].map((breed) => DropdownMenuItem(value: breed, child: Text(breed))).toList(),
+                          onChanged: (value) => setState(() => selectedBreed = value),
+                          decoration: InputDecoration(labelText: "Breed",
+                          labelStyle: TextStyle(color: Colors.white), 
+                          filled: true,
+                          fillColor: const Color.fromARGB(98, 255, 255, 255), 
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10), 
+                            borderSide: BorderSide.none, 
+                          ),
+                          ),
+                          dropdownColor: Colors.grey[700], 
+                        ),
+                      ),
+                     // SizedBox(height: 30,),
+                    if (selectedAnimal == '🐱 Cat')
+                      SizedBox(
+                        width: 265,
+                        child: DropdownButtonFormField<String>(
+                          value: selectedBreed,
+                          items: ['Siamese', 'Persian', 'Unknown'].map((breed) => DropdownMenuItem(value: breed, child: Text(breed))).toList(),
+                          onChanged: (value) => setState(() => selectedBreed = value),
+                          decoration: InputDecoration(labelText: "Breed",
+                          labelStyle: TextStyle(color: Colors.white), 
+                          filled: true,
+                          fillColor: const Color.fromARGB(98, 255, 255, 255), 
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10), 
+                            borderSide: BorderSide.none, 
+                          ),
+                          ),
+                          dropdownColor: Colors.grey[700], 
+                        ),
+                      ),
+                    if (selectedAnimal == 'Other')
+                     Mytextfield(controller: customAnimalController,hintText: "Specify Animal",prefixIcon: Icon(Icons.pets,color: Colors.white,),obscureText: false,), 
+                      
+                      SizedBox(height: 30),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white, width: 1.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 35, vertical: 8),
+                      child: TextButton(
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now(),
+                          );
+                          if (date != null) setState(() => birthDate = date);
+                        },
+                        child: Text(
+                          birthDate == null
+                              ? "Pick Birth Date"
+                              : "Birth Date: ${birthDate!.toLocal().toString().split(' ')[0]}",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 20,),
                     Mytextfield(controller: kilosController,hintText: "Weight in kg",prefixIcon: Icon(Icons.scale,color: Colors.white,),obscureText: false,),
                     SizedBox(height: 20,),
                     Padding(
