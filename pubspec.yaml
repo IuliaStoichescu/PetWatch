@@ -63,8 +63,8 @@ dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/logo/petWatchLogo.jpg" 
-  adaptive_icon_foreground: "assets/logo/petWatchLogo.jpg" 
+  image_path: "assets/logo/pet_watch_logo.jpg" 
+  adaptive_icon_foreground: "assets/logo/pet_watch_logo.jpg" 
   adaptive_icon_background: "#FFFFFF"
 
 dev_dependencies:

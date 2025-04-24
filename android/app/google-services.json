@@ -12,7 +12,12 @@
           "package_name": "com.example.myPetWatch"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "118660317591-mvqdko7o1ri71gjdf9e4hmfvkjl9p65d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBr2HKapMxPqxobhD08ig0e9jPOWkEcgww"
@@ -20,7 +25,55 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "118660317591-mvqdko7o1ri71gjdf9e4hmfvkjl9p65d.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "118660317591-lb303jd1kr4iessltjm8a1favls26c6e.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myPetWatch"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:118660317591:android:f03d6951dad39237c144d2",
+        "android_client_info": {
+          "package_name": "com.example.my_pet_watch"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "118660317591-mvqdko7o1ri71gjdf9e4hmfvkjl9p65d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBr2HKapMxPqxobhD08ig0e9jPOWkEcgww"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "118660317591-mvqdko7o1ri71gjdf9e4hmfvkjl9p65d.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "118660317591-lb303jd1kr4iessltjm8a1favls26c6e.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myPetWatch"
+              }
+            }
+          ]
         }
       }
     }

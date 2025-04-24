@@ -17,17 +17,11 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
@@ -58,7 +52,25 @@ class DefaultFirebaseOptions {
     messagingSenderId: '118660317591',
     projectId: 'mypetwatchapplication',
     storageBucket: 'mypetwatchapplication.firebasestorage.app',
+    iosClientId: '118660317591-lb303jd1kr4iessltjm8a1favls26c6e.apps.googleusercontent.com',
     iosBundleId: 'com.example.myPetWatch',
+  );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyAiW08ANESI0E-Pj98AaQXMsb82jL37ceA',
+    appId: '1:118660317591:web:510523d1fb7b05f9c144d2',
+    messagingSenderId: '118660317591',
+    projectId: 'mypetwatchapplication',
+    authDomain: 'mypetwatchapplication.firebaseapp.com',
+    storageBucket: 'mypetwatchapplication.firebasestorage.app',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyBr2HKapMxPqxobhD08ig0e9jPOWkEcgww',
+    appId: '1:118660317591:android:f03d6951dad39237c144d2',
+    messagingSenderId: '118660317591',
+    projectId: 'mypetwatchapplication',
+    storageBucket: 'mypetwatchapplication.firebasestorage.app',
   );
 
 }

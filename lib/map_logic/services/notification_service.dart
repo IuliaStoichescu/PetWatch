@@ -15,7 +15,7 @@ class NotificationService {
       return;
     }
     //for andrioid
-    const initSettingsAndroid = AndroidInitializationSettings('petWatchLogo');
+    const initSettingsAndroid = AndroidInitializationSettings('pet_watch_logo');
 
     //for ios
     const initSettingsiOS = DarwinInitializationSettings(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pet_watch/login_signin/auth_page.dart';
 import 'package:pet_watch/login_signin/services/storage_service.dart';
@@ -12,9 +13,23 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // ✅ Ensure async code runs before UI
   NotificationService().initNotification();
-  await Firebase.initializeApp(
-   options: DefaultFirebaseOptions.currentPlatform,
-  );
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: FirebaseOptions(
+        apiKey: "AIzaSyAiW08ANESI0E-Pj98AaQXMsb82jL37ceA",
+        authDomain: "mypetwatchapplication.firebaseapp.com",
+        projectId: "mypetwatchapplication",
+        storageBucket: "mypetwatchapplication.firebasestorage.app",
+        messagingSenderId: "118660317591",
+        appId: "1:118660317591:web:510523d1fb7b05f9c144d2"
+      ),
+    );
+  } else {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final bool seenOnboarding = prefs.getBool("seenOnboarding") ?? false; // ✅ Default to false
 

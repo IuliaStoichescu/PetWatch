@@ -14,7 +14,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final User user = FirebaseAuth.instance.currentUser!;
+   User? user = FirebaseAuth.instance.currentUser!;
+  
   List<String> items = []; 
 
   void logUserout() {
@@ -26,6 +27,11 @@ class _HomePageState extends State<HomePage> {
       items.add("Pet Profile ${items.length + 1}"); 
     });
   }
+  @override
+void initState() {
+  super.initState();
+  user = FirebaseAuth.instance.currentUser;
+}
 
   @override
   Widget build(BuildContext context) {

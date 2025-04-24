@@ -3,7 +3,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:math' as mathing;
 import 'dart:ui' as ui;
 import 'package:pet_watch/map_logic/widgets/pulsing_circle_widget.dart';
 
