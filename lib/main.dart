@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:pet_watch/login_signin/auth_page.dart';
 import 'package:pet_watch/login_signin/services/storage_service.dart';
 import 'package:pet_watch/map_logic/services/notification_service.dart';
@@ -10,13 +11,15 @@ import 'package:pet_watch/onboarding_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
-void main() async {
+Future<void> main() async {
+  await dotenv.load(fileName: ".env");
+  final apiKeyWeb = dotenv.env['API_KEY_WEB'];
   WidgetsFlutterBinding.ensureInitialized(); // ✅ Ensure async code runs before UI
   NotificationService().initNotification();
   if (kIsWeb) {
     await Firebase.initializeApp(
       options: FirebaseOptions(
-        apiKey: "AIzaSyAiW08ANESI0E-Pj98AaQXMsb82jL37ceA",
+        apiKey: apiKeyWeb!,
         authDomain: "mypetwatchapplication.firebaseapp.com",
         projectId: "mypetwatchapplication",
         storageBucket: "mypetwatchapplication.firebasestorage.app",

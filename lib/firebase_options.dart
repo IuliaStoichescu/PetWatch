@@ -3,6 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -46,8 +47,8 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyA1zBaGvKZWMT24Y97vgY26ea4WiqS0Ux0',
+  static  FirebaseOptions ios = FirebaseOptions(
+    apiKey: dotenv.env['API_KEY_IOS']!,
     appId: '1:118660317591:ios:8a7db5121ade2948c144d2',
     messagingSenderId: '118660317591',
     projectId: 'mypetwatchapplication',
@@ -56,8 +57,8 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.myPetWatch',
   );
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAiW08ANESI0E-Pj98AaQXMsb82jL37ceA',
+  static FirebaseOptions web = FirebaseOptions(
+    apiKey: dotenv.env['API_KEY_WEB']!,
     appId: '1:118660317591:web:510523d1fb7b05f9c144d2',
     messagingSenderId: '118660317591',
     projectId: 'mypetwatchapplication',
@@ -65,8 +66,8 @@ class DefaultFirebaseOptions {
     storageBucket: 'mypetwatchapplication.firebasestorage.app',
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBr2HKapMxPqxobhD08ig0e9jPOWkEcgww',
+  static FirebaseOptions android = FirebaseOptions(
+    apiKey: dotenv.env['API_KEY_ANDROID']!,
     appId: '1:118660317591:android:f03d6951dad39237c144d2',
     messagingSenderId: '118660317591',
     projectId: 'mypetwatchapplication',

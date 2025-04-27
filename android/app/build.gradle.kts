@@ -7,17 +7,23 @@ plugins {
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
-
+val apiKey = project.findProperty("API_KEY_ANDROID") as String? ?: ""
 android {
     namespace = "com.example.my_pet_watch"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
+
 
     compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
     isCoreLibraryDesugaringEnabled = true
     }
+
+    buildFeatures {
+    buildConfig = true
+}
+
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
@@ -32,8 +38,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        buildConfigField("String", "API_KEY_ANDROID", "\"$apiKey\"")
     }
-
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
