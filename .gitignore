@@ -20,6 +20,7 @@ ios/Runner/GoogleService-Info.plist
 # Sensitive platform files (because they contain API keys)
 android/app/src/main/AndroidManifest.xml
 ios/Runner/AppDelegate.swift
+ios/Runner/Info.plist
 
 # IntelliJ related
 *.iml
