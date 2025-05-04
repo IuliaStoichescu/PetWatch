@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +10,7 @@ import 'package:pet_watch/map_logic/map.dart';
 import 'package:pet_watch/map_logic/services/storage_service.dart';
 import 'package:pet_watch/pet_add/add_pet.dart';
 import 'package:pet_watch/set_home_location.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class PetList extends StatefulWidget {
   const PetList({super.key});
@@ -19,9 +21,10 @@ class PetList extends StatefulWidget {
 
 class _PetListState extends State<PetList> {
   final User user = FirebaseAuth.instance.currentUser!;
-
+  
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return StreamBuilder(
       stream: FirebaseFirestore.instance
           .collection("users")
@@ -39,7 +42,7 @@ class _PetListState extends State<PetList> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "No pet profiles added yet!",
+                  l10n.noPetsMessage,
                   style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
                 lottie.Lottie.asset("assets/missing_animation.json"),
@@ -125,26 +128,33 @@ Future<void> _cleanupSession() async {
     String animalType = widget.petDetails["animalType"] ?? "Unknown";
     String birthDateString = widget.petDetails["birthDate"] ?? "Not provided";
 
-    String ageDisplay = "Unknown";
-    if (birthDateString != "Not provided") {
-      try {
-        DateTime birthDate = DateTime.parse(birthDateString);
-        Duration ageDuration = DateTime.now().difference(birthDate);
-        int years = ageDuration.inDays ~/ 365;
-        int months = (ageDuration.inDays % 365) ~/ 30;
+   final l10n = AppLocalizations.of(context)!;
 
-        if (years > 0) {
-          ageDisplay = "$years year${years > 1 ? 's' : ''}";
-          if (months > 0) ageDisplay += " $months month${months > 1 ? 's' : ''}";
-        } else if (months > 0) {
-          ageDisplay = "$months month${months > 1 ? 's' : ''}";
-        } else {
-          ageDisplay = "Less than a month";
+  String ageDisplay = l10n.unknownAge;
+
+  if (birthDateString != "Not provided") {
+    try {
+      DateTime birthDate = DateTime.parse(birthDateString);
+      Duration ageDuration = DateTime.now().difference(birthDate);
+      int years = ageDuration.inDays ~/ 365;
+      int months = (ageDuration.inDays % 365) ~/ 30;
+
+      if (years > 0) {
+        ageDisplay = l10n.yearsCount(years);
+        if (months > 0) {
+          ageDisplay += " ${l10n.monthsCount(months)}";
         }
-      } catch (e) {
-        ageDisplay = "Invalid date";
+      } else if (months > 0) {
+        ageDisplay = l10n.monthsCount(months);
+      } else {
+        ageDisplay = l10n.lessThanMonth;
       }
+    } catch (e) {
+      ageDisplay = l10n.invalidDate;
     }
+  }
+
+
 
     bool isFemale = sex.toLowerCase() == "female";
     IconData genderIcon = isFemale ? Icons.female : Icons.male;
@@ -177,21 +187,21 @@ Future<void> _cleanupSession() async {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Name: $petName", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                      Text("Animal: $animalType", style: TextStyle(fontSize: 16)),
-                      Text("Breed: $breed", style: TextStyle(fontSize: 16)),
-                      Text("Age: $ageDisplay", style: TextStyle(fontSize: 16)),
-                      Row(
-                        children: [
-                          Text("Sex: $sex", style: TextStyle(fontSize: 16)),
-                          SizedBox(width: 5),
-                          Icon(genderIcon, color: genderColor, size: 24),
-                        ],
-                      ),
-                      Text("Weight: $weight", style: TextStyle(fontSize: 16)),
-                      Divider(thickness: 1, color: Colors.black,),
-                      Text("About: $about", style: TextStyle(fontSize: 14, overflow: TextOverflow.ellipsis),overflow: TextOverflow.visible,),
-                    ],
+                        Text("${l10n.nameLabel}: $petName", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                        Text("${l10n.animalLabel}: $animalType", style: TextStyle(fontSize: 16)),
+                        Text("${l10n.breedLabel}: $breed", style: TextStyle(fontSize: 16)),
+                        Text("${l10n.ageLabel}: $ageDisplay", style: TextStyle(fontSize: 16)),
+                        Row(
+                          children: [
+                            Text("${l10n.sexLabel}: $sex", style: TextStyle(fontSize: 16)),
+                            SizedBox(width: 5),
+                            Icon(genderIcon, color: genderColor, size: 24),
+                          ],
+                        ),
+                        Text("${l10n.weightLabel}: $weight", style: TextStyle(fontSize: 16)),
+                        Divider(thickness: 1, color: Colors.black),
+                        Text("${l10n.aboutLabel}: $about", style: TextStyle(fontSize: 14), overflow: TextOverflow.visible),
+                      ],
                   ),
                 ),
                 SizedBox(width: 30,),
@@ -415,6 +425,7 @@ void showSnackbar(BuildContext context, String message, Color color) {
 }
 
 Future<void> _deletePet() async {
+   final l10n = AppLocalizations.of(context)!;
   try {
     final petRef = FirebaseFirestore.instance
         .collection("users")
@@ -441,7 +452,7 @@ Future<void> _deletePet() async {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Pet and all data deleted successfully!"),
+        content: Text(l10n.petDeletedMessage),
         backgroundColor: Colors.red,
       ),
     );
@@ -450,7 +461,7 @@ Future<void> _deletePet() async {
     print(stack);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Failed to delete pet."),
+        content: Text(l10n.petDeleteFailed),
         backgroundColor: Colors.red,
       ),
     );
@@ -459,19 +470,20 @@ Future<void> _deletePet() async {
 
 
   void _confirmDeletePet(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Delete Pet"),
-          content: Text("Are you sure you want to delete this pet profile? This action cannot be undone."),
+          title: Text(l10n.deletePetTitle),
+          content: Text(l10n.deletePetConfirm),
           actions: [
             TextButton(
-              child: Text("Cancel"),
+              child: Text(l10n.cancelButton),
               onPressed: () => Navigator.pop(context),
             ),
             TextButton(
-              child: Text("Delete", style: TextStyle(color: Colors.red)),
+              child: Text(l10n.deleteButton, style: TextStyle(color: Colors.red)),
               onPressed: () {
                 Navigator.pop(context);
                 _deletePet();

@@ -96,7 +96,7 @@ class HelpPage extends StatelessWidget {
               "• ✅ *Cloud MQTT* is used when both the phone and ESP32 Gateway device are connected to the internet.\n"
               "• 🌐 *Local WebSocket* is used when neither the phone nor the ESP Gateway has internet, and they are on the same WiFi (AP mode).\n"
               "• ⚠️ If only one device has internet, GPS data cannot be transmitted.\n"
-              "• 🔄 The app automatically checks and switches modes when the network changes.",
+              "• 🔄 Connect to Wifi Access Point: WIFI: ESP32_Pet_Tracker, PASSWORD: 9876543210",
               style: TextStyle(fontSize: 16),
             ),
             SizedBox(height: 12),

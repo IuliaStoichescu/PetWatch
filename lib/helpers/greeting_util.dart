@@ -1,62 +1,58 @@
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-String getTimeBasedGreeting(User? user) {
+String getTimeBasedGreeting(User? user, BuildContext context) {
   final hour = DateTime.now().hour;
   final firstName = getUserFirstName(user);
-  
+  final l10n = AppLocalizations.of(context)!;
+
+  List<String> greetings;
+
   if (hour >= 5 && hour < 12) {
-    List<String> morningGreetings = [
-      "Good morning, $firstName!",
-      "Rise and shine, $firstName!",
-      "Hello $firstName, have a wonderful morning!",
-      "Morning! Ready for a great day, $firstName?"
+    greetings = [
+      l10n.morningGreeting1(firstName),
+      l10n.morningGreeting2(firstName),
+      l10n.morningGreeting3(firstName),
+      l10n.morningGreeting4(firstName),
     ];
-    return morningGreetings[DateTime.now().millisecond % morningGreetings.length];
-  } 
-
-  else if (hour >= 12 && hour < 18) {
-    List<String> afternoonGreetings = [
-      "Good afternoon, $firstName!",
-      "Hey there $firstName, having a good day?",
-      "Afternoon, $firstName!",
-      "Hope your day is going well, $firstName!"
+  } else if (hour >= 12 && hour < 18) {
+    greetings = [
+      l10n.afternoonGreeting1(firstName),
+      l10n.afternoonGreeting2(firstName),
+      l10n.afternoonGreeting3(firstName),
+      l10n.afternoonGreeting4(firstName),
     ];
-    return afternoonGreetings[DateTime.now().millisecond % afternoonGreetings.length];
-  } 
-
-  else if (hour >= 18 && hour < 22) {
-    List<String> eveningGreetings = [
-      "Good evening, $firstName!",
-      "Evening, $firstName! How was your day?",
-      "Hi $firstName, enjoying your evening?",
-      "Winding down, $firstName?"
+  } else if (hour >= 18 && hour < 22) {
+    greetings = [
+      l10n.eveningGreeting1(firstName),
+      l10n.eveningGreeting2(firstName),
+      l10n.eveningGreeting3(firstName),
+      l10n.eveningGreeting4(firstName),
     ];
-    return eveningGreetings[DateTime.now().millisecond % eveningGreetings.length];
-  } 
-
-  else {
-    List<String> nightGreetings = [
-      "Hello night owl, $firstName!",
-      "Working late, $firstName?",
-      "Good night, $firstName!",
-      "Still up, $firstName? Don't forget to rest!"
+  } else {
+    greetings = [
+      l10n.nightGreeting1(firstName),
+      l10n.nightGreeting2(firstName),
+      l10n.nightGreeting3(firstName),
+      l10n.nightGreeting4(firstName),
     ];
-    return nightGreetings[DateTime.now().millisecond % nightGreetings.length];
   }
+
+  return greetings[DateTime.now().millisecond % greetings.length]
+      .replaceAll('{name}', firstName);
 }
-
 String getUserFirstName(User? user) {
-  String firstName = "";
   if (user != null && user.email != null) {
-    firstName = getFirstNameFromEmail(user.email!);
+    return getFirstNameFromEmail(user.email!);
   }
-  return firstName;
+  return '';
 }
 
 String getFirstNameFromEmail(String email) {
   if (email.contains('@')) {
     String username = email.split('@')[0];
-    return username.split('.')[0].capitalize();
+    return username.split('.').first.capitalize();
   }
   return email;
 }
@@ -66,3 +62,4 @@ extension StringExtension on String {
     return "${this[0].toUpperCase()}${substring(1)}";
   }
 }
+

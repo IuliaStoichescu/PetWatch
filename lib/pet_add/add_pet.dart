@@ -1,5 +1,5 @@
 import 'dart:math';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -219,6 +219,7 @@ final List<String> catBreeds = [
 final minWidth = 500.0;
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bool isEdit = widget.petId != null;
     final screenWidth = MediaQuery.of(context).size.width;
     return Consumer<StorageService>(
@@ -247,39 +248,39 @@ final minWidth = 500.0;
                             SizedBox(width: 20,),
                             Column(
                               children: [
-                                Text(isEdit? "Let's edit ": "Let's create",style: TextStyle(fontSize: 20,color: Colors.white),),
-                                Text("your pet's profile!",style: TextStyle(fontSize: 20,color: Colors.white),),
-                                Text(!isEdit? "(Guide. Continue below ⬇️)":"",style: TextStyle(color: Colors.white))
+                                Text(isEdit? l10n.editTitle : l10n.createTitle,style: TextStyle(fontSize: 20,color: Colors.white),),
+                                Text(l10n.yourPetProfile,style: TextStyle(fontSize: 20,color: Colors.white),),
+                                Text(!isEdit? l10n.guideNote:"",style: TextStyle(color: Colors.white))
                               ],
                             ),
                             Lottie.asset("assets/cat_play.json",width: 150,height: 150),
                           ],
                         ),
                     ),
-                    if(!isEdit)...[ Text("🔷Once your pet’s profile is ready, ",style: TextStyle(color: Colors.white)),
-                    Text("you'll see a toggle switch next to it",style: TextStyle(color: Colors.white)),
-                    SizedBox(height: 10,),
-                    Divider(thickness: 0.5,color: const Color.fromARGB(255, 44, 44, 44),),
-                    SizedBox(height: 10,),
-                    Text("🔷Red Toggle: Your pet tracker is not ",style: TextStyle(color: Colors.white)),
-                    Text("linked yet. Keep it like this until you",style: TextStyle(color: Colors.white)),
-                    Text(" make sure to attach the tracking device ",style: TextStyle(color: Colors.white)),
-                    Text("to your pet's collar.",style: TextStyle(color: Colors.white)),
-                    Image.asset("assets/off.png",width: 150,height: 150,),
-                    SizedBox(height: 10,),
-                    Divider(thickness: 0.5,color: const Color.fromARGB(255, 44, 44, 44),),
-                    SizedBox(height: 10,),
-                    Text("🔷When you switch it to the Green Toggle that ",style: TextStyle(color: Colors.white)),
-                    Text("means the device is successfully connected!",style: TextStyle(color: Colors.white)),
-                    Text(" Now, you’re all set to track your pet’s location",style: TextStyle(color: Colors.white)),
-                    Text(" in real-time",style: TextStyle(color: Colors.white)),
+                    if(!isEdit)...[  Text(l10n.onboardingStep1, style: TextStyle(color: Colors.white)),
+                    Text(l10n.onboardingStep2, style: TextStyle(color: Colors.white)),
+                    SizedBox(height: 10),
+                    Divider(thickness: 0.5, color: Color.fromARGB(255, 44, 44, 44)),
+                    SizedBox(height: 10),
+                    Text(l10n.onboardingStep3, style: TextStyle(color: Colors.white)),
+                    Text(l10n.onboardingStep4, style: TextStyle(color: Colors.white)),
+                    Text(l10n.onboardingStep5, style: TextStyle(color: Colors.white)),
+                    Text(l10n.onboardingStep6, style: TextStyle(color: Colors.white)),
+                    Image.asset("assets/off.png", width: 150, height: 150),
+                    SizedBox(height: 10),
+                    Divider(thickness: 0.5, color: Color.fromARGB(255, 44, 44, 44)),
+                    SizedBox(height: 10),
+                    Text(l10n.onboardingStep7, style: TextStyle(color: Colors.white)),
+                    Text(l10n.onboardingStep8, style: TextStyle(color: Colors.white)),
+                    Text(l10n.onboardingStep9, style: TextStyle(color: Colors.white)),
+                    Text(l10n.onboardingStep10, style: TextStyle(color: Colors.white)),
                     Image.asset("assets/on.png",width: 150,height: 150,),SizedBox(height: 30,),]
                     else...[
 
                     ],                 
-                    Text("Pet Profile",style: TextStyle(color: Colors.white,fontSize: 30,decoration: TextDecoration.underline,decorationColor: const Color.fromARGB(255, 255, 255, 255),),),
+                    Text(l10n.profile,style: TextStyle(color: Colors.white,fontSize: 30,decoration: TextDecoration.underline,decorationColor: const Color.fromARGB(255, 255, 255, 255),),),
                     SizedBox(height: 30,),
-                    Mytextfield(controller: nameController,hintText: "PetName",prefixIcon: Icon(Icons.pets,color: Colors.white,),obscureText: false,),
+                    Mytextfield(controller: nameController,hintText: l10n.petNameHint,prefixIcon: Icon(Icons.pets,color: Colors.white,),obscureText: false,),
                     SizedBox(height: 20,),
                     SizedBox(
                       width: 265, 
@@ -300,7 +301,7 @@ final minWidth = 500.0;
                           });
                         },
                         decoration: InputDecoration(
-                          labelText: "Gender",
+                          labelText: l10n.genderLabel,
                           labelStyle: TextStyle(color: Colors.white), 
                           filled: true,
                           fillColor: const Color.fromARGB(98, 255, 255, 255), 
@@ -317,7 +318,7 @@ final minWidth = 500.0;
                       width: 265, 
                       child: DropdownButtonFormField<String>(
                         value: selectedAnimal,
-                        items: ['🐶 Dog','🐱 Cat','Other'].map((animal) => 
+                        items: ["🐶 Dog","🐱 Cat","Other"].map((animal) => 
                         DropdownMenuItem(
                           
                           value: animal,child: Text(animal,style: TextStyle(color: Colors.white),))).toList(),
@@ -326,7 +327,7 @@ final minWidth = 500.0;
                           selectedBreed = null;
                         }),
                         decoration: InputDecoration(
-                          labelText: "Animal Type",
+                          labelText: l10n.animalTypeLabel,
                            labelStyle: TextStyle(color: Colors.white), 
                           filled: true,
                           fillColor: const Color.fromARGB(98, 255, 255, 255), 
@@ -347,7 +348,7 @@ final minWidth = 500.0;
                           isExpanded: true,
                           items: dogBreeds.map((breed) => DropdownMenuItem(value: breed, child: Text(breed))).toList(),
                           onChanged: (value) => setState(() => selectedBreed = value),
-                          decoration: InputDecoration(labelText: "Breed",
+                          decoration: InputDecoration(labelText: l10n.breed,
                           labelStyle: TextStyle(color: Colors.white), 
                           filled: true,
                           fillColor: const Color.fromARGB(98, 255, 255, 255), 
@@ -360,7 +361,7 @@ final minWidth = 500.0;
                         ),
                       ),
                      // SizedBox(height: 30,),
-                    if (selectedAnimal == '🐱 Cat')
+                    if (selectedAnimal == "🐱 Cat")
                       SizedBox(
                         width: 265,
                         child: DropdownButtonFormField<String>(
@@ -368,7 +369,7 @@ final minWidth = 500.0;
                           isExpanded: true,
                           items: catBreeds.map((breed) => DropdownMenuItem(value: breed, child: Text(breed))).toList(),
                           onChanged: (value) => setState(() => selectedBreed = value),
-                          decoration: InputDecoration(labelText: "Breed",
+                          decoration: InputDecoration(labelText: l10n.breed,
                           labelStyle: TextStyle(color: Colors.white), 
                           filled: true,
                           fillColor: const Color.fromARGB(98, 255, 255, 255), 
@@ -380,8 +381,8 @@ final minWidth = 500.0;
                           dropdownColor: Colors.grey[700], 
                         ),
                       ),
-                    if (selectedAnimal == 'Other')
-                     Mytextfield(controller: customAnimalController,hintText: "Specify Animal",prefixIcon: Icon(Icons.pets,color: Colors.white,),obscureText: false,), 
+                    if (selectedAnimal == "Other")
+                     Mytextfield(controller: customAnimalController,hintText: l10n.specifyAnimalHint,prefixIcon: Icon(Icons.pets,color: Colors.white,),obscureText: false,), 
                       
                       SizedBox(height: 30),
                     Container(
@@ -402,15 +403,15 @@ final minWidth = 500.0;
                         },
                         child: Text(
                           birthDate == null
-                              ? "Pick Birth Date"
-                              : "Birth Date: ${birthDate!.toLocal().toString().split(' ')[0]}",
+                              ? l10n.birthDatePrompt
+                              : l10n.birthDateLabel(birthDate!.toLocal().toString().split(' ')[0]),
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ),
 
                     SizedBox(height: 20,),
-                    Mytextfield(controller: kilosController,hintText: "Weight in kg",prefixIcon: Icon(Icons.scale,color: Colors.white,),obscureText: false,),
+                    Mytextfield(controller: kilosController,hintText: l10n.weightHint,prefixIcon: Icon(Icons.scale,color: Colors.white,),obscureText: false,),
                     SizedBox(height: 20,),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 50.0),
@@ -428,7 +429,7 @@ final minWidth = 500.0;
                             ),
                             fillColor: Color.fromARGB(91, 255, 253, 253), 
                             filled: true, 
-                            hintText: "About my pet ❤️", 
+                            hintText: l10n.aboutHint, 
                             hintStyle: TextStyle(color: Colors.white), 
                             focusColor: Colors.white, 
                           ),
@@ -455,14 +456,14 @@ final minWidth = 500.0;
                               : null, 
                         ),
                         SizedBox(width: 20,),
-                        FloatingActionButton(onPressed: () => storageService.deleteImages(imageUrls.last),
+                        /*FloatingActionButton(onPressed: () => storageService.deleteImages(imageUrls.last),
                         backgroundColor:  const Color.fromARGB(130, 255, 255, 255),
                         child: const Icon(Icons.remove,color: Color(0xFF6C4C57),),
-                        ),
+                        ),*/
                       ],
                     ),
                     SizedBox(height: 20,),
-                    MyButtonForCreation(onTap:() => savePetInfo(imageUrls),text: isEdit ? "Save Changes" : "Create Profile"),
+                    MyButtonForCreation(onTap:() => savePetInfo(imageUrls),text: isEdit ? l10n.editButton : l10n.createButton),
                   ],
                 ),
               ),

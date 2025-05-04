@@ -56,8 +56,7 @@ class _MapPageState extends State<MapPage> {
   MqttServerClient? client;
 
   WebSocketChannel? wsChannel;
-  StreamSubscription?
-      wsSubscription; //pentru folosirea WebSocket cand receptorul nu are acces la internet pt primirea datelor gps
+  StreamSubscription?wsSubscription; //pentru folosirea WebSocket cand receptorul nu are acces la internet pt primirea datelor gps
   final GlobalKey _mapBoundaryKey = GlobalKey();
 
   double totalDistance = 0.0;
@@ -391,6 +390,21 @@ Future<void> _setMapStyle() async {
     return false;
   }
 
+  void _parseFromWebSocket(String message){
+    if(message.startsWith("GPS:")){
+      _parseGPSData(message.substring(4));
+    }
+    else if(message.startsWith("ACCEL:")){
+      _parseAccelData(message.substring(6));
+    }
+    else if(message.startsWith("EVENT:")){
+      _parseEventData(message.substring(6));
+    }
+    else if (message.startsWith("SIGNAL:")){
+      _parseSignalData(message.substring(7));
+    }
+  }
+
     void _connectToWebSocket() {
     print("Connecting to WebSocket at ws://192.168.4.1/ws ...");
 
@@ -402,7 +416,9 @@ Future<void> _setMapStyle() async {
         setState(() {
           canConnect = true; // Connection confirmed via data
         });
-        _parseGPSData(message); // refolosim parserul MQTT
+       // _parseGPSData(message); // refolosim parserul MQTT
+       //Functie de preluare a datelor de la esp32
+       _parseFromWebSocket(message);
       },
       onError: (error) {
         print("WebSocket error: $error");
@@ -721,7 +737,7 @@ Future<void> _setMapStyle() async {
             markerMap: _markersEvent,
             updateMarkers: (newMarkers) {
               setState(() {
-               // _markersEvent.clear();
+                //_markersEvent.clear();
                 _markersEvent.addAll(newMarkers);
               });
             },
@@ -1029,7 +1045,7 @@ Future<void> _parseGPSData(String payload) async {
                             canConnect
                                 ? (useCloud
                                     ? "Connected to Cloud MQTT"
-                                    : "Using Local WebSocket")
+                                    : "Use Local WebSocket")
                                 : "No connection to GPS data",
                             style: TextStyle(fontSize: 18,color: isDarkMap? Colors.white:Colors.black),
                           ),

@@ -1,0 +1,194 @@
+{
+    "@@locale": "en",
+    "createTitle": "Let's create",
+    "editTitle": "Let's edit",
+    "yourPetProfile": "your pet's profile!",
+    "guideNote": "(Guide. Continue below ⬇️)",
+    "profile":"Pet Profile",
+    "genderLabel": "Gender",
+    "animalTypeLabel": "Animal Type",
+    "specifyAnimalHint": "Specify Animal",
+    "birthDatePrompt": "Pick Birth Date",
+    "birthDateLabel": "Birth Date: {date}",
+    "petNameHint": "PetName",
+    "weightHint": "Weight in kg",
+    "aboutHint": "About my pet ❤️",
+    "createButton": "Create Profile",
+    "editButton": "Save Changes",
+    "dog":"🐶 Dog",
+    "cat":"🐱 Cat",
+    "dogSeelected":"Dog",
+    "catSelected":"Cat",
+    "other":"Other",
+    "breed":"Breed",
+    "onboardingStep1": "🔷Once your pet’s profile is ready,",
+    "onboardingStep2": "you'll see a toggle switch next to it",
+    "onboardingStep3": "🔷Red Toggle: Your pet tracker is not",
+    "onboardingStep4": "linked yet. Keep it like this until you",
+    "onboardingStep5": "make sure to attach the tracking device",
+    "onboardingStep6": "to your pet's collar.",
+    "onboardingStep7": "🔷When you switch it to the Green Toggle that",
+    "onboardingStep8": "means the device is successfully connected!",
+    "onboardingStep9": "Now, you’re all set to track your pet’s location",
+    "onboardingStep10": "in real-time",
+    "noPetsMessage": "No pet profiles added yet!",
+    "deletePetTitle": "Delete Pet",
+    "deletePetConfirm": "Are you sure you want to delete this pet profile? This action cannot be undone.",
+    "cancelButton": "Cancel",
+    "deleteButton": "Delete",
+    "petSavedMessage": "Pet profile saved successfully!",
+    "petDeletedMessage": "Pet and all data deleted successfully!",
+    "petDeleteFailed": "Failed to delete pet.",
+    "nameLabel": "Name",
+    "animalLabel": "Animal",
+    "breedLabel": "Breed",
+    "ageLabel": "Age",
+    "sexLabel": "Sex",
+    "weightLabel": "Weight",
+    "aboutLabel": "About",
+    "unknownAge": "Unknown",
+        "invalidDate": "Invalid date",
+        "lessThanMonth": "Less than a month",
+        "yearsCount": "{count} year(s)",
+        "monthsCount": "{count} month(s)",
+
+        "@yearsCount": {
+          "placeholders": {
+            "count": {
+              "type": "int"
+            }
+          },
+          "plural": true
+        },
+        "@monthsCount": {
+          "placeholders": {
+            "count": {
+              "type": "int"
+            }
+          },
+          "plural": true
+        },
+
+
+
+    "morningGreeting1": "Good morning, {name}!",
+    "@morningGreeting1": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "morningGreeting2": "Rise and shine, {name}!",
+    "@morningGreeting2": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "morningGreeting3": "Hello {name}, have a wonderful morning!",
+    "@morningGreeting3": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "morningGreeting4": "Morning! Ready for a great day, {name}?",
+    "@morningGreeting4": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+  
+    "afternoonGreeting1": "Good afternoon, {name}!",
+    "@afternoonGreeting1": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "afternoonGreeting2": "Hey there {name}, having a good day?",
+    "@afternoonGreeting2": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "afternoonGreeting3": "Afternoon, {name}!",
+    "@afternoonGreeting3": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "afternoonGreeting4": "Hope your day is going well, {name}!",
+    "@afternoonGreeting4": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+  
+    "eveningGreeting1": "Good evening, {name}!",
+    "@eveningGreeting1": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "eveningGreeting2": "Evening, {name}! How was your day?",
+    "@eveningGreeting2": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "eveningGreeting3": "Hi {name}, enjoying your evening?",
+    "@eveningGreeting3": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "eveningGreeting4": "Winding down, {name}?",
+    "@eveningGreeting4": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+  
+    "nightGreeting1": "Hello night owl, {name}!",
+    "@nightGreeting1": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "nightGreeting2": "Working late, {name}?",
+    "@nightGreeting2": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "nightGreeting3": "Good night, {name}!",
+    "@nightGreeting3": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "nightGreeting4": "Still up, {name}? Don't forget to rest!",
+    "@nightGreeting4": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "historyPageTitle": "History Page",
+    "selectPetPrompt": "💡 Select a pet from the drawer to view session history.",
+    "noPetsFound": "No pets found.",
+    "yourPets": "Your Pets",
+    "heatmap": "Heatmap",
+    "noHomeFound": "No home location found for this pet.",
+    "noSessionHistory": "No session history for {petName}.",
+    "sessionDate": "📅 {date}",
+    "startTime": "⏱ Start: {time}",
+    "endTime": "⏲ End: {time}",
+    "durationLabel": "Duration: {value}",
+    "distanceLabel": "Distance: {value} km",
+
+    "heatmapTitle": "'s Heatmap 🔥",
+    "heatmapInfoTitle": "Heatmap Info",
+    "heatmapInfoBody": "🔥 The heatmap shows where your pet has spent the most time during walks or activity.",
+    "heatmapInfoDetails": "Red pulsing circle areas = more frequent visits.\n🏠 The area near home is ignored by default.\n📍 Multiple sessions are analyzed.\nExplore the map to see where your pet likes to hang out!",
+    "closeButton": "Close"
+
+
+  }
+  

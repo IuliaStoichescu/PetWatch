@@ -26,10 +26,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for windows - '
@@ -46,6 +43,17 @@ class DefaultFirebaseOptions {
         );
     }
   }
+
+  /*static FirebaseOptions macos = FirebaseOptions(
+  apiKey: dotenv.env['API_KEY_IOS']!,
+  appId: 'app-1-118660317591-ios-06033cf966f6bb49c144d2', // from Firebase Console
+  messagingSenderId: '118660317591',
+  projectId: 'mypetwatchapplication',
+  storageBucket: 'mypetwatchapplication.appspot.com',
+  iosClientId: '118660317591-q5ivn5vuvgmrf7brjdo23bvofg1qjgc3.apps.googleusercontent.com', // optional
+  iosBundleId: 'com.example.myPetWatch.macOS', // or your actual macOS bundle ID
+);
+*/
 
   static  FirebaseOptions ios = FirebaseOptions(
     apiKey: dotenv.env['API_KEY_IOS']!,
@@ -72,6 +80,17 @@ class DefaultFirebaseOptions {
     messagingSenderId: '118660317591',
     projectId: 'mypetwatchapplication',
     storageBucket: 'mypetwatchapplication.firebasestorage.app',
+  );
+
+  static  FirebaseOptions macos = FirebaseOptions(
+    apiKey: dotenv.env['API_KEY_IOS']!,
+    appId: '1:118660317591:ios:8a7db5121ade2948c144d2',
+    messagingSenderId: '118660317591',
+    projectId: 'mypetwatchapplication',
+    storageBucket: 'mypetwatchapplication.firebasestorage.app',
+    androidClientId: '118660317591-cek65oi555ahl8dacjtckii9kc6ji0uc.apps.googleusercontent.com',
+    iosClientId: '118660317591-lb303jd1kr4iessltjm8a1favls26c6e.apps.googleusercontent.com',
+    iosBundleId: 'com.example.myPetWatch',
   );
 
 }

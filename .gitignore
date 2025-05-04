@@ -16,7 +16,7 @@ migrate_working_dir/
 # Firebase configs
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
-
+macos/Runner/GoogleService-Info.plist
 # Sensitive platform files (because they contain API keys)
 android/app/src/main/AndroidManifest.xml
 ios/Runner/AppDelegate.swift

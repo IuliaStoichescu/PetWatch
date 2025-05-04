@@ -6,6 +6,7 @@ class PulsingCircle extends StatefulWidget {
   final double radius;
   final double opacity;
   final GoogleMapController mapController;
+  final Color color;
 
   const PulsingCircle({
     super.key,
@@ -13,6 +14,7 @@ class PulsingCircle extends StatefulWidget {
     required this.radius,
     required this.opacity,
     required this.mapController,
+    required this.color
   });
 
   @override
@@ -77,7 +79,7 @@ class _PulsingCircleState extends State<PulsingCircle> with SingleTickerProvider
                 height: size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.red.withOpacity(widget.opacity * (1 - _controller.value)),
+                  color: widget.color.withOpacity(widget.opacity * (1 - _controller.value)),
                 ),
               ),
             );

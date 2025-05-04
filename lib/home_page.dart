@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:pet_watch/helpers/greeting_util.dart';
 import 'package:pet_watch/helpers/square_fab.dart';
 import 'package:pet_watch/history_page.dart';
+import 'package:pet_watch/main.dart';
 import 'package:pet_watch/pet_add/add_pet.dart';
 import 'package:pet_watch/pet_add/pet_card.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -66,14 +69,34 @@ void initState() {
                 SizedBox(width: 15),
                 Expanded(
                   child: Text(
-                   getTimeBasedGreeting(user),
-                    style: TextStyle(color: Colors.white,fontSize: 18),
+                   getTimeBasedGreeting(user,context),
+                    style: TextStyle(color: Colors.white,fontSize: 16),
                   ),
                 ),
               ],
             ),
             centerTitle: true,
             actions: [
+              GestureDetector(
+                onTap: () {
+                  final current = Localizations.localeOf(context).languageCode;
+                  final newLocale = Locale(current == 'en' ? 'ro' : 'en');
+                  final localeState = context.findAncestorStateOfType<LocaleWrapperState>();
+                  localeState?.setLocale(newLocale);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: CircleAvatar(
+                    radius: 16,
+                    backgroundImage: AssetImage(
+                      Localizations.localeOf(context).languageCode == 'en'
+                          ? 'assets/england.png'
+                          : 'assets/romania.png',
+                    ),
+                  ),
+                ),
+              ),
+
               IconButton(
                 icon:Icon(Icons.history,size: 25,color: Colors.white,),
                 onPressed: (){

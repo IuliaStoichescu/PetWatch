@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:pet_watch/map_logic/pet_heatmap_page.dart';
 import 'package:pet_watch/session_analytics_page.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -24,6 +25,8 @@ class _HistoryPageState extends State<HistoryPage> {
 
 @override
 Widget build(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
+
   return Scaffold(
     drawer: _buildDrawer(),
     body: Stack(
@@ -58,7 +61,7 @@ Widget build(BuildContext context) {
                 ),
                 SizedBox(width: 8),
                 Text(
-                  "History Page",
+                  l10n.historyPageTitle,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -80,7 +83,7 @@ Widget build(BuildContext context) {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("💡 Select a pet from the drawer to view session history.",style: TextStyle(fontSize: 15),),
+                    Text(l10n.selectPetPrompt,style: TextStyle(fontSize: 15),),
                     LottieBuilder.asset("assets/select_pet.json")
                   ],
                 )
@@ -93,6 +96,7 @@ Widget build(BuildContext context) {
   );
 }
 Widget _buildDrawer() {
+  final l10n = AppLocalizations.of(context)!;
   return Drawer(
     child: FutureBuilder<QuerySnapshot>(
       future: FirebaseFirestore.instance
@@ -106,7 +110,7 @@ Widget _buildDrawer() {
         }
 
         if (!petSnapshot.hasData || petSnapshot.data!.docs.isEmpty) {
-          return Center(child: Text("No pets found."));
+          return Center(child: Text(l10n.noPetsFound));
         }
 
         return ListView(
@@ -117,7 +121,7 @@ Widget _buildDrawer() {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Your Pets", style: TextStyle(color: Colors.white, fontSize: 24)),
+                  Text(l10n.yourPets, style: TextStyle(color: Colors.white, fontSize: 24)),
                   SizedBox(width: 20,),
                   Icon(Icons.pets,color: const Color.fromARGB(255, 52, 41, 38),)
                 ],
@@ -141,7 +145,7 @@ Widget _buildDrawer() {
                       ListTile(
                         trailing: ElevatedButton.icon(
                           icon: Icon(Icons.insights,color: Colors.red,),
-                          label: Text("Heatmap", style: TextStyle(fontSize: 12,color: Colors.red)),
+                          label: Text(l10n.heatmap, style: TextStyle(fontSize: 12,color: Colors.red)),
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             textStyle: TextStyle(fontSize: 12),
@@ -161,7 +165,7 @@ Widget _buildDrawer() {
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("No home location found for this pet.")),
+                                SnackBar(content: Text(l10n.noHomeFound)),
                               );
                             }
                           },
@@ -203,6 +207,7 @@ Widget _buildDrawer() {
 
 
   Widget _buildSessionList() {
+    final l10n = AppLocalizations.of(context)!;
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection("users")
@@ -224,7 +229,7 @@ Widget _buildDrawer() {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("No session history for $selectedPetName."),
+                Text(l10n.noSessionHistory(selectedPetName ?? "this pet")),
                 SizedBox(height: 10,),
                 Lottie.asset("assets/no_pet_history_found.json",width: 70,height: 70)
               ],
@@ -262,14 +267,14 @@ Widget _buildDrawer() {
                       ? Icon(Icons.pets)
                       : null,
                 ),
-                title: Text("📅 ${dateFormatter.format(start)}"),
+                title: Text(l10n.sessionDate(dateFormatter.format(start))),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("⏱ Start: ${timeFormatter.format(start)}"),
-                     Text("⏲ End: ${timeFormatter.format(end)}"),
-                    Text("Duration: ${_formatDuration(duration)}"),
-                    Text("Distance: ${(distance / 1000).toStringAsFixed(2)} km"),
+                    Text(l10n.startTime(timeFormatter.format(start))),
+                    Text(l10n.endTime(timeFormatter.format(end))),
+                    Text(l10n.durationLabel(_formatDuration(duration))),
+                    Text(l10n.distanceLabel((distance / 1000).toStringAsFixed(2))),
                   ],
                 ),
               ),

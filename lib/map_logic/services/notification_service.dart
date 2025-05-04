@@ -20,12 +20,19 @@ class NotificationService {
     //for ios
     const initSettingsiOS = DarwinInitializationSettings(
       requestAlertPermission: true,
-      requestBadgePermission: true
+      requestBadgePermission: true,
+      requestSoundPermission: true,
     );
+   // macOS settings
+  const macosSettings = DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
+  );
 
     const initSettings = InitializationSettings(
       android: initSettingsAndroid,
-      iOS: initSettingsiOS
+      iOS: initSettingsiOS,
     );
     
     await notificationsPlugin.initialize(initSettings);

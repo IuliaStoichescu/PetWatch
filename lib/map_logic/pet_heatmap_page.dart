@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui' as ui;
 import 'package:pet_watch/map_logic/widgets/pulsing_circle_widget.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class PetHeatmapPage extends StatefulWidget {
   final String petId;
@@ -24,12 +25,16 @@ class PetHeatmapPage extends StatefulWidget {
 
 class _PetHeatmapPageState extends State<PetHeatmapPage> {
   GoogleMapController? _mapController;
-  List<LatLng> circleCenters = [];
+  List<HeatPoint> circleCenters = [];
   final user = FirebaseAuth.instance.currentUser!;
   Set<Circle> heatCircles = {};
   CameraPosition? _lastCameraPosition;
   bool isDarkMap = false;
   String? _currentMapStyle;
+  List <HeatPoint> heatPoints = [];
+  DateTime? startDate;
+  DateTime? endDate;
+
 
   @override
   void initState() {
@@ -52,7 +57,8 @@ class _PetHeatmapPageState extends State<PetHeatmapPage> {
 
   Future<void> _generateHeatmap() async {
     Map<String, int> frequency = {};
-
+    Set<HeatPoint> points = {};
+    int maxCount = 1;
     final sessions = await FirebaseFirestore.instance
         .collection("users")
         .doc(user.uid)
@@ -73,7 +79,12 @@ class _PetHeatmapPageState extends State<PetHeatmapPage> {
   else {
     print("✅ Valid path found in session ${session.id}: ${data['path']}");
   }
-
+    if (startDate != null && endDate != null && data.containsKey('start_time')) {
+        DateTime sessionStart = DateTime.parse(data['start_time']);
+        if (sessionStart.isBefore(startDate!) || sessionStart.isAfter(endDate!)) {
+          continue; // Skip sessions outside the range
+        }
+      }
 
   final path = data['path'] as List<dynamic>;
 
@@ -104,12 +115,17 @@ frequency.forEach((key, count) {
   double lat = int.parse(parts[0]) / 10000;
   double lon = int.parse(parts[1]) / 10000;
 
-  final center = LatLng(lat, lon);
-  centers.add(center);
+  if(count >maxCount){
+    maxCount = count;
+  }
+ // final center = LatLng(lat, lon);
+ // centers.add(center);
+    points.add(HeatPoint(position: LatLng(lat, lon), count: count));
 });
 
 setState(() {
-  circleCenters = centers;
+  //circleCenters = centers;
+  heatPoints = points.toList();
 });
   }
 
@@ -118,6 +134,8 @@ void helpMiniWindow(BuildContext context) {
 
   OverlayState overlayState = Overlay.of(context);
   late OverlayEntry overlayEntry;
+  final l10n = AppLocalizations.of(context)!;
+
 
   overlayEntry = OverlayEntry(
     builder: (context) => Positioned(
@@ -148,7 +166,7 @@ void helpMiniWindow(BuildContext context) {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      "Heatmap Info",
+                      l10n.heatmapInfoTitle,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -160,14 +178,14 @@ void helpMiniWindow(BuildContext context) {
               ),
               Divider(),
               Text(
-                "🔥 The heatmap shows where your pet has spent the most time during walks or activity.",
+                l10n.heatmapInfoBody,
                 style: TextStyle(
                     fontSize: 14,
                     color: isDarkMap ? Colors.white : Colors.black),
               ),
               SizedBox(height: 8),
               Text(
-                "Red pulsing circle areas = more frequent visits.\n🏠 The area near home is ignored by default.\n📍 Multiple sessions are analyzed.\n Explore the map to see where your pet likes to hang out!",
+                l10n.heatmapInfoDetails,
                 style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
@@ -180,7 +198,7 @@ void helpMiniWindow(BuildContext context) {
                   onPressed: () {
                     overlayEntry.remove();
                   },
-                  child: Text("Close",
+                  child: Text(l10n.closeButton,
                       style: TextStyle(
                           color: isDarkMap
                               ? Colors.white
@@ -197,12 +215,24 @@ void helpMiniWindow(BuildContext context) {
   overlayState.insert(overlayEntry);
 }
 
+Color getHeatColor(double normalized) {
+  if (normalized < 0.5) {
+    // Green to Yellow transition
+    return Color.lerp(const Color.fromARGB(255, 13, 236, 21), Colors.yellow, normalized * 2)!;
+  } else {
+    // Yellow to Red transition
+    return Color.lerp(Colors.yellow, Colors.red, (normalized - 0.5) * 2)!;
+  }
+}
+
 
  @override
 Widget build(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
+
   return Scaffold(
     appBar: AppBar(title:
-     Text("${widget.petName}'s Heatmap 🔥",style: TextStyle(color: Colors.white),),
+     Text("${widget.petName} ${l10n.heatmapTitle}",style: TextStyle(color: Colors.white,fontSize: 20),),
      backgroundColor: const Color.fromARGB(255, 193, 52, 42),
      centerTitle: true,
      iconTheme: IconThemeData(color: Colors.white),
@@ -243,15 +273,30 @@ Widget build(BuildContext context) {
           }),
           myLocationEnabled: false,
         ),
+        
         if (_mapController != null)
-          ...circleCenters.map((position) => PulsingCircle(
-                position: position,
-                radius: 100,
-                opacity: 0.4,
+          ...heatPoints.map((point) {
+              final double normalized = point.count / (heatPoints.map((e) => e.count).reduce((a, b) => a > b ? a : b));
+              final color = getHeatColor(normalized);
+
+              return PulsingCircle(
+                position: point.position,
+                radius: (70 + normalized * 130).clamp(70, 200), // Radius between 70–200
+                opacity: (0.2 + normalized * 0.8).clamp(0.2, 1.0), // Opacity between 0.2–1
                 mapController: _mapController!,
-              )),
+                color: color
+              );
+            }),
+
       ],
     ),
   );
 }
+}
+
+class HeatPoint {
+  final LatLng position;
+  final int count;
+
+  HeatPoint({required this.position,required this.count});
 }

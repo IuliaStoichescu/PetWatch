@@ -1,0 +1,195 @@
+{
+    "@@locale": "ro",
+    "createTitle": "Să creăm",
+    "editTitle": "Să edităm",
+    "yourPetProfile": "profilul animalului tău!",
+    "guideNote": "(Ghid. Continuă mai jos ⬇️)",
+    "profile":"Profilul Animalului",
+    "genderLabel": "Gen",
+    "animalTypeLabel": "Tipul animalului",
+    "specifyAnimalHint": "Specifică animalul",
+    "birthDatePrompt": "Selectează data nașterii",
+    "birthDateLabel": "Data nașterii: {date}",
+    "petNameHint": "Numele animalului",
+    "weightHint": "Greutate în kg",
+    "aboutHint": "Despre animalul meu ❤️",
+    "createButton": "Creează profil",
+    "editButton": "Salvează modificările",
+    "dog":"🐶 Cățel",
+    "cat":"🐱 Pisică",
+    "dogSeelected":"Cățel",
+    "catSelected":"Pisică",
+    "other":"Altceva",
+    "breed":"Rasă",
+    "onboardingStep1": "🔷Odată ce profilul animalului tău este creat,",
+    "onboardingStep2": "vei vedea un comutator lângă el",
+    "onboardingStep3": "🔷Comutatorul roșu: Dispozitivul nu este conectat",
+    "onboardingStep4": "Ține-l așa până când",
+    "onboardingStep5": "atașezi dispozitivul de urmărire",
+    "onboardingStep6": "la zgarda animalului.",
+    "onboardingStep7": "🔷Când îl comuți pe verde,",
+    "onboardingStep8": "înseamnă că dispozitivul a fost conectat cu succes!",
+    "onboardingStep9": "Acum poți urmări locația animalului tău",
+    "onboardingStep10": "în timp real",
+    "deletePetTitle": "Șterge animalul",
+    "deletePetConfirm": "Ești sigur că vrei să ștergi acest profil? Această acțiune este ireversibilă.",
+    "cancelButton": "Anulează",
+    "deleteButton": "Șterge",
+    "petSavedMessage": "Profilul animalului a fost salvat!",
+    "petDeletedMessage": "Animalul și toate datele au fost șterse cu succes!",
+    "petDeleteFailed": "Ștergerea animalului a eșuat.",
+    "nameLabel": "Nume",
+    "animalLabel": "Animal",
+    "breedLabel": "Rasă",
+    "ageLabel": "Vârstă",
+    "sexLabel": "Sex",
+    "weightLabel": "Greutate",
+    "aboutLabel": "Despre",
+    "unknownAge": "Necunoscută",
+    "invalidDate": "Dată invalidă",
+    "lessThanMonth": "Mai puțin de o lună",
+
+    "yearsCount": "{count, plural, =1{{count} an} other{{count} ani}}",
+    "monthsCount": "{count, plural, =1{{count} lună} other{{count} luni}}",
+
+    "@yearsCount": {
+      "placeholders": {
+        "count": {
+          "type": "int"
+        }
+      },
+      "plural": true
+    },
+    "@monthsCount": {
+      "placeholders": {
+        "count": {
+          "type": "int"
+        }
+      },
+      "plural": true
+    }
+    ,
+
+
+    "morningGreeting1": "Bună dimineața, {name}!",
+    "noPetsMessage": "Nu ai adăugat niciun profil de animal!",
+    "@morningGreeting1": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "morningGreeting2": "Trezirea, {name}!",
+    "@morningGreeting2": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "morningGreeting3": "Salut {name}, o dimineață minunată!",
+    "@morningGreeting3": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "morningGreeting4": "Dimineața! Gata pentru o zi grozavă, {name}?",
+    "@morningGreeting4": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+  
+    "afternoonGreeting1": "Bună ziua, {name}!",
+    "@afternoonGreeting1": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "afternoonGreeting2": "Salut {name}, ai o zi bună?",
+    "@afternoonGreeting2": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "afternoonGreeting3": "Ziua bună, {name}!",
+    "@afternoonGreeting3": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "afternoonGreeting4": "Sper că ai o zi frumoasă, {name}!",
+    "@afternoonGreeting4": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+  
+    "eveningGreeting1": "Bună seara, {name}!",
+    "@eveningGreeting1": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "eveningGreeting2": "Seara bună, {name}! Cum a fost ziua ta?",
+    "@eveningGreeting2": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "eveningGreeting3": "Salut {name}, te bucuri de seară?",
+    "@eveningGreeting3": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "eveningGreeting4": "Relaxează-te, {name}?",
+    "@eveningGreeting4": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+  
+    "nightGreeting1": "Salut, pasăre de noapte, {name}!",
+    "@nightGreeting1": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "nightGreeting2": "Lucrezi târziu, {name}?",
+    "@nightGreeting2": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "nightGreeting3": "Noapte bună, {name}!",
+    "@nightGreeting3": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "nightGreeting4": "Ești încă treaz, {name}? Nu uita să te odihnești!",
+    "@nightGreeting4": {
+      "placeholders": {
+        "name": {}
+      }
+    },
+    "historyPageTitle": "Istoricul Activității",
+    "selectPetPrompt": "💡 Selectează un animal din meniu pentru a vedea istoricul sesiunilor.",
+    "noPetsFound": "Nu s-au găsit animale.",
+    "yourPets": "Animalele tale",
+    "heatmap": "Hartă termică",
+    "noHomeFound": "Nu există o locație de acasă pentru acest animal.",
+    "noSessionHistory": "Nicio sesiune salvată pentru {petName}.",
+    "sessionDate": "📅 {date}",
+    "startTime": "⏱ Început: {time}",
+    "endTime": "⏲ Sfârșit: {time}",
+    "durationLabel": "Durată: {value}",
+    "distanceLabel": "Distanță: {value} km",
+
+    "heatmapTitle": " - Harta de căldură 🔥",
+    "heatmapInfoTitle": "Despre harta de căldură",
+    "heatmapInfoBody": "🔥 Harta arată unde animalul tău a petrecut cel mai mult timp în timpul plimbărilor sau activităților.",
+    "heatmapInfoDetails": "Zonele cu cercuri roșii pulsatorii = vizite frecvente.\n🏠 Zona de acasă este ignorată.\n📍 Se analizează mai multe sesiuni.\nExplorează harta pentru a vedea unde îi place să stea!",
+    "closeButton": "Închide"
+
+
+  }
+  
