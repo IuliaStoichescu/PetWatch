@@ -188,8 +188,151 @@
     "heatmapInfoTitle": "Despre harta de căldură",
     "heatmapInfoBody": "🔥 Harta arată unde animalul tău a petrecut cel mai mult timp în timpul plimbărilor sau activităților.",
     "heatmapInfoDetails": "Zonele cu cercuri roșii pulsatorii = vizite frecvente.\n🏠 Zona de acasă este ignorată.\n📍 Se analizează mai multe sesiuni.\nExplorează harta pentru a vedea unde îi place să stea!",
-    "closeButton": "Închide"
+    "closeButton": "Închide",
 
+    "sessionAnalysisTitle": "Analiza Sesiunii",
+    "sessionStats": "📊 Statistici sesiune",
+    "durationComparison": "⏱️ Durată: cu {percent}% mai scurtă decât cea mai lungă sesiune",
+    "longestSession": "⏱️ Aceasta este cea mai lungă sesiune a animalului tău!",
+    "distanceComparison": "📏 Distanță: cu {percent}% mai mică decât cea mai lungă distanță",
+    "longestDistance": "📏 Aceasta este cea mai lungă distanță parcursă!",
+    "nearHomeVsAway": "📍 Aproape de casă vs Departe",
+    "sessionDistanceChart": "🏃‍♂️ Distanța sesiunilor comparată",
+    "sessionNumberXAxis": "Numărul sesiunii",
+    "distanceYAxis": "Distanță (metri)",
+   "positiveMessage1": "🔥 Super! Animalul tău a fost foarte activ!",
+    "positiveMessage2": "🎉 O plimbare grozavă!",
+    "positiveMessage3": "🏅 Un nou record atins!",
+    "positiveMessage4": "🐾 Animale active sunt animale fericite!",
+    "positiveMessage5": "🚀 Foarte bine! Mișcare excelentă!",
+    "positiveMessage6": "🌟 Sesiune minunată! Animalul tău a adorat-o!",
 
+    "encouragementMessage1": "🚶‍♂️ Încearcă să plimbi mai mult data viitoare.",
+    "encouragementMessage2": "🦴 Animalul tău are nevoie de mai multă mișcare.",
+    "encouragementMessage3": "🏃‍♀️ Hai să explorăm mai mult!",
+    "encouragementMessage4": "🕒 Sesiune scurtă. Mai lungă data viitoare!",
+    "encouragementMessage5": "📉 Plimbare prea scurtă!",
+    "encouragementMessage6": "🐶 Animalul tău are nevoie de mai mult timp afară!",
+
+    "setHomeTitle": "Setează locația de acasă",
+    "setHomeMessage": "📍 Atinge pe hartă pentru a seta baza de acasă pentru animalul tău",
+    "confirmHomeButton": "Confirmă locația de acasă",
+
+    "helpTitle": "Ajutor",
+    "helpImHomeTitle": "💡 Butonul \"Sunt acasă\"",
+    "helpImHomeContent": "• Apasă butonul \"Sunt acasă\" când animalul tău a ajuns în siguranță.\n• Această acțiune oprește cronometrul și salvează timpul petrecut în afara casei.\n• Poți urmări traseul și distanța totală prin harta live.",
+    "helpMapTitle": "📍 Controle hartă",
+    "helpMapContent": "• Folosește butoanele + și - pentru a face zoom.\n• Atinge pictograma locației pentru a plasa geofence-uri.\n• Pictograma centrează harta pe animalul tău sau pe casă.",
+    "helpFollowModeTitle": "🎯 Modul Urmărire",
+    "helpFollowModeContent": "• Modul Urmărire păstrează automat camera centrată pe locația animalului tău în timp real.\n• Activează-l atingând pictograma cu ochiul\n• Te ajută să monitorizezi mișcările fără să ajustezi harta manual.\n• Atinge din nou pictograma pentru a dezactiva modul.",
+    "helpNotificationsTitle": "🔔 Notificări",
+    "helpNotificationsContent": "Veți primi alerte în funcție de activitatea, locația și datele senzorilor (cădere sau impact).",
+    "helpConnectivityTitle": "📶 Logică de conectivitate",
+    "helpConnectivityDescription": "Aplicația alege strategia optimă de conectare în funcție de disponibilitatea internetului:",
+    "helpConnectivityModes": "• ✅ *Cloud MQTT* este folosit când telefonul și ESP32 sunt ambele online.\n• 🌐 *WebSocket local* este folosit când niciun dispozitiv nu are internet și sunt conectate la aceeași rețea WiFi (mod AP).\n• ⚠️ Dacă doar unul are internet, datele GPS nu pot fi transmise.\n• 🔄 Conectează-te la rețeaua WiFi: WIFI: ESP32_Pet_Tracker, PAROLĂ: 9876543210",
+    "helpConnectivityTip": "Sfatur: Dacă gateway-ul ESP32 nu e online, conectează telefonul la hotspotul ESP pentru backup local.",
+
+    "alert_sleep1": "😴 Animalul tău doarme liniștit.",
+  "alert_sleep2": "😌 E timpul pentru un pui de somn.",
+  "alert_sleep3": "🌙 Odihnă binemeritată pentru prietenul tău.",
+  "alert_sleep4": "💤 Somn adânc detectat!",
+  "alert_sleep5": "🐾 Modul odihnă activat.",
+
+  "alert_walk1": "🚶‍♂️ Animalul tău face o plimbare.",
+  "alert_walk2": "🐕 Se plimbă ca un campion!",
+  "alert_walk3": "🐾 Plimbare detectată.",
+  "alert_walk4": "🦴 Explorează zona pas cu pas.",
+  "alert_walk5": "😎 Animalul tău este în mișcare.",
+
+  "alert_run1": "🏃 Animalul tău aleargă cu viteză!",
+  "alert_run2": "🐶 A pornit zoomies-ul!",
+  "alert_run3": "💨 Energie ridicată detectată!",
+  "alert_run4": "🏞️ Alergare sălbatică prin teren.",
+  "alert_run5": "⚡ Modul sprint activat!",
+
+  "alert_fall_title": "⚠️ Cădere Detectată!",
+  "alert_fall1": "🪨 Este posibil ca animalul să fi căzut.",
+  "alert_fall2": "🚨 Scădere bruscă a activității. Verifică!",
+  "alert_fall3": "🐾 Alertă de cădere!",
+  "alert_fall4": "😟 Poate a alunecat.",
+  "alert_fall5": "📉 Accelerarea indică o cădere.",
+
+  "alert_impact_title": "💥 Impact Detectat!",
+  "alert_impact1": "💢 S-a înregistrat un impact puternic.",
+  "alert_impact2": "🚨 Ceva a lovit cu forță!",
+  "alert_impact3": "🐾 Alertă de impact: mișcare bruscă!",
+  "alert_impact4": "🧱 Animalul a simțit un șoc!",
+  "alert_impact5": "⚠️ Mișcare cu forță mare detectată.",
+
+  "activityAlertTitle": "Alertă Activitate",
+
+  "geofenceAlertTitle": "Alertă Zonă de Siguranță",
+  "geofenceAlertBody": "Animalul a ieșit din zona de siguranță la",
+
+  
+    "gpsInfoTitle": "Informații GPS",
+    "gpsNotRecorded": "Datele GPS nu sunt înregistrate încă!",
+    "gpsTryOutside": "Încearcă să scoți animalul afară",
+    "latitude": "Latitudine",
+    "longitude": "Longitudine",
+    "altitude": "Altitudine",
+    "speed": "Viteză",
+    "satellites": "Sateliti",
+    "time": "Timp",
+    "totalDistance": "Distanță parcursă",
+    "accelerometerTitle": "Informații accelerometru",
+    "acceleration": "Accelerație",
+    "gyroscope": "Girometru",
+    "angle": "Unghi",
+    "magnitude": "Magnitudine",
+    "activeMagnitude": "Magnitudine activă",
+    "noise": "Zgomot",
+    "state": "Stare",
+    "signalTitle": "Status semnal și zgomot radio",
+    "signalNotRecorded": "Semnalul și zgomotul nu sunt disponibile încă!",
+    "signalExcellent": "Semnal excelent",
+    "signalDecent": "Semnal decent",
+    "signalWeak": "Semnal slab",
+    "noiseExcellent": "Zgomot radio excelent",
+    "noiseGood": "Zgomot radio bun",
+    "noiseBad": "Zgomot radio slab",
+    "close": "Închide",
+    "connectionCloud": "Conectat la MQTT din cloud",
+    "connectionLocal": "Se folosește WebSocket local",
+    "connectionNone": "Nu există conexiune la datele GPS"  ,
+    "holdOn": "Așteaptă puțin",
+  "petLocationUnavailable": "Locația animalului nu este disponibilă încă",
+
+  "currentlyTracking": "Urmărești acum: {petName}",
+  "@currentlyTracking": {
+    "description": "Afișează ce animal este urmărit.",
+    "placeholders": {
+      "petName": {}
+    }
+  },
+  "home":"Sunt acasă",
+  "setGeofenceTitle": "Setează zona de siguranță",
+  "setGeofenceMessage": "📍 Atinge pe hartă pentru a seta centrul geofence-ului",
+
+    "geofenceAlertTitle1": "📍 Alertă Geofence",
+    "geofenceAlertBody1": "{petName} a ieșit din zona de siguranță la ora {time}.",
+    "@geofenceAlertBody1": {
+      "description": "Notifică utilizatorul că animalul a ieșit din zona de siguranță",
+      "placeholders": {
+        "petName": {},
+        "time": {}
+      }
+    },
+  
+  "petLeftHomeTitle": "🏠 Animalul a părăsit casa",
+  "petLeftHomeBody": "{petName} a plecat de acasă la ora {time}.",
+  "@petLeftHomeBody": {
+    "description": "Alertă când animalul pleacă de acasă",
+    "placeholders": {
+      "petName": {},
+      "time": {}
+    }
+  },
+"searchLocation":"Caută locație"
   }
   

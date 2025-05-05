@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:syncfusion_flutter_charts/charts.dart'; // for pie and bar charts
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class SessionAnalyticsPage extends StatefulWidget {
   final String petId;
@@ -20,24 +21,6 @@ class SessionAnalyticsPage extends StatefulWidget {
 
 class _SessionAnalyticsPageState extends State<SessionAnalyticsPage> {
   final user = FirebaseAuth.instance.currentUser!;
-
-  final List<String> positiveMessages = [
-  "🔥 Good job! Your pet was very active!",
-  "🎉 That was an amazing walk!",
-  "🏅 Your pet hit a new milestone!",
-  "🐾 Active pets are happy pets!",
-  "🚀 Keep it up! Great exercise!",
-  "🌟 Excellent session! Your pet loved it!",
-];
-
-final List<String> encouragementMessages = [
-  "🚶‍♂️ Try to walk your pet more next time.",
-  "🦴 Your pet could use more activity.",
-  "🏃‍♀️ Let's explore more next time!",
-  "🕒 Short session! Go a bit longer next time.",
-  "📉 That walk was too brief!",
-  "🐶 Your pet needs more outdoor fun!",
-];
 
 
   double maxDuration = 0;
@@ -137,38 +120,57 @@ final List<String> encouragementMessages = [
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+final positiveMessages = [
+  l10n.positiveMessage1,
+  l10n.positiveMessage2,
+  l10n.positiveMessage3,
+  l10n.positiveMessage4,
+  l10n.positiveMessage5,
+  l10n.positiveMessage6,
+];
+
+final encouragementMessages = [
+  l10n.encouragementMessage1,
+  l10n.encouragementMessage2,
+  l10n.encouragementMessage3,
+  l10n.encouragementMessage4,
+  l10n.encouragementMessage5,
+  l10n.encouragementMessage6,
+];
     return Scaffold(
       backgroundColor:  Color.fromARGB(255, 1, 62, 123),
       appBar: AppBar(
         iconTheme: IconThemeData(color: Colors.white),
-        title: Text("Session Analysis",style: TextStyle(color: Colors.white),),backgroundColor: Color.fromARGB(255, 1, 62, 123),),
+        title: Text(l10n.sessionAnalysisTitle,style: TextStyle(color: Colors.white),),backgroundColor: Color.fromARGB(255, 1, 62, 123),),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("📊 Session Stats", style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              Text(l10n.sessionStats, style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.white, // or any custom color
                 ),),
               Divider(),
               SizedBox(height: 10),
               Text(
                 currentDuration!=maxDuration?
-              "⏱️ Duration: ${(100 - (currentDuration / maxDuration * 100)).toStringAsFixed(1)}% less than the longest session":
-              "⏱️ This is your pets longest session!",
+                l10n.durationComparison(((100 - (currentDuration / maxDuration * 100)).toStringAsFixed(1)))
+               : l10n.longestSession,
               style: TextStyle(fontSize: 16,color: Colors.white),
             ),
             Text(
               currentDistance!=maxDistance?
-              "📏 Distance: ${(100 - (currentDistance / maxDistance * 100)).toStringAsFixed(1)}% less than the longest distance":
-              "📏 This is your pets longest distance!",
+              l10n.distanceComparison(((100 - (currentDistance / maxDistance * 100)).toStringAsFixed(1)))
+              : l10n.longestDistance,
               style: TextStyle(fontSize: 16,color: Colors.white),
             ),
           
               SizedBox(height: 20),
           
-              Text("📍 Near Home vs Away",style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              Text(l10n.nearHomeVsAway,style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.white, // or any custom color
                 ),),
               Divider(),
@@ -200,7 +202,7 @@ final List<String> encouragementMessages = [
           
               SizedBox(height: 20),
           
-              Text("🏃‍♂️ Session Distance Compared to Others",style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              Text(l10n.sessionDistanceChart,style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.white, // or any custom color
                 ),),
               Divider(),
@@ -210,14 +212,14 @@ final List<String> encouragementMessages = [
                   primaryXAxis: CategoryAxis(
                   axisLine: AxisLine(color: Colors.white),
                   title: AxisTitle(
-                    text: 'Session Number', // Label for X-axis
+                    text: l10n.sessionNumberXAxis, // Label for X-axis
                     textStyle: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                   labelStyle: TextStyle(color: Colors.white), // <-- white x-axis labels
                 ),
                 primaryYAxis: NumericAxis(
                   title: AxisTitle(
-                    text: 'Distance (meters)', // Label for Y-axis
+                    text: l10n.distanceYAxis, // Label for Y-axis
                     textStyle: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                   axisLine: AxisLine(color: Colors.white),

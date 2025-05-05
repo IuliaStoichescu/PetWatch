@@ -26,6 +26,7 @@ import 'package:pet_watch/map_logic/widgets/weather_info_box.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class MapPage extends StatefulWidget {
   final String petName;
@@ -175,7 +176,8 @@ Future<void> _setMapStyle() async {
     required String value,
     required String time,
   }) {
-    String title = "Activity Alert";
+    final l10n = AppLocalizations.of(context)!;
+    String title = l10n.activityAlertTitle;
     String body = "";
 
     final rand = Random();
@@ -183,63 +185,63 @@ Future<void> _setMapStyle() async {
 
     List<String> options;
 
-    switch (upperValue) {
-      case "SLEEP":
-        options = [
-          "😴 Your pet is snoozing peacefully.",
-          "😌 Nap time! Your buddy is asleep.",
-          "🌙 A well-deserved rest for your pet.",
-          "💤 Looks like a deep sleep going on!",
-          "🐾 Resting mode activated.",
-        ];
-        break;
+  switch (upperValue) {
+    case "SLEEP":
+      options = [
+        l10n.alert_sleep1,
+        l10n.alert_sleep2,
+        l10n.alert_sleep3,
+        l10n.alert_sleep4,
+        l10n.alert_sleep5,
+      ];
+      break;
 
-      case "WALK":
-        options = [
-          "🚶‍♂️ Your pet is going for a walk.",
-          "🐕 Strolling around like a champ!",
-          "🐾 A casual walk detected.",
-          "🦴 Exploring the area step by step.",
-          "😎 Your pet is on the move.",
-        ];
-        break;
+    case "WALK":
+      options = [
+        l10n.alert_walk1,
+        l10n.alert_walk2,
+        l10n.alert_walk3,
+        l10n.alert_walk4,
+        l10n.alert_walk5,
+      ];
+      break;
 
-      case "RUN":
-        options = [
-          "🏃 Your pet is running full speed!",
-          "🐶 Zoomies activated!",
-          "💨 High energy detected!",
-          "🏞️ On a wild run through the terrain.",
-          "⚡ Sprint mode enabled!",
-        ];
-        break;
+    case "RUN":
+      options = [
+        l10n.alert_run1,
+        l10n.alert_run2,
+        l10n.alert_run3,
+        l10n.alert_run4,
+        l10n.alert_run5,
+      ];
+      break;
 
-      case "FALL":
-        title = "⚠️ Fall Detected!";
-        options = [
-          "🪨 Your pet may have fallen.",
-          "🚨 Sudden drop in activity. Check in!",
-          "🐾 Fall alert triggered!",
-          "😟 Your buddy might have slipped.",
-          "📉 Acceleration indicates a fall.",
-        ];
-        break;
+    case "FALL":
+      title = l10n.alert_fall_title;
+      options = [
+        l10n.alert_fall1,
+        l10n.alert_fall2,
+        l10n.alert_fall3,
+        l10n.alert_fall4,
+        l10n.alert_fall5,
+      ];
+      break;
 
-      case "IMPACT":
-        title = "💥 Impact Detected!";
-        options = [
-          "💢 A strong impact has been recorded.",
-          "🚨 Something just hit hard!",
-          "🐾 Impact alert: sudden motion spike!",
-          "🧱 Pet experienced a jolt!",
-          "⚠️ High-force movement detected.",
-        ];
-        break;
+    case "IMPACT":
+      title = l10n.alert_impact_title;
+      options = [
+        l10n.alert_impact1,
+        l10n.alert_impact2,
+        l10n.alert_impact3,
+        l10n.alert_impact4,
+        l10n.alert_impact5,
+      ];
+      break;
 
-      default:
-        options = ["Activity: $value"];
-        break;
-    }
+  default:
+    options = ["Activity: $value"];
+    break;
+}
 
     body = options[rand.nextInt(options.length)];
 
@@ -843,6 +845,7 @@ void _handleFollowModeCamera(LatLng newLocation) async {
 
 
 Future<void> _parseGPSData(String payload) async {
+  final l10n = AppLocalizations.of(context)!;
   try {
     RegExp regex = RegExp(
       r'LAT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*LON\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*ALT\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*SPD\s*:\s*([-+]?[0-9]*\.?[0-9]+),\s*SAT\s*:\s*([0-9]+),\s*TIME\s*:\s*([0-9:]+)',
@@ -904,8 +907,9 @@ Future<void> _parseGPSData(String payload) async {
               startOutTimer(); // Start timer for UI updates
               print("🏃 Pet left home area. Session started.");
               notif = CustomNotification(
-                title: "🏠 Pet Left Home",
-                body: "${widget.petName} has left home at $time.",
+                title: l10n.petLeftHomeTitle,
+                body: l10n.petLeftHomeBody(widget.petName, time),
+
                 imageUrl: widget.petImageUrl,
                 time: time,
               );
@@ -925,8 +929,9 @@ Future<void> _parseGPSData(String payload) async {
               startOutTimer(); // Start timer for UI updates
               print("🏃 Pet left home area. Session started.");
               notif = CustomNotification(
-                title: "🏠 Pet Left Home",
-                body: "${widget.petName} has left home at $time.",
+                title: l10n.petLeftHomeTitle,
+                body: l10n.petLeftHomeBody(widget.petName, time),
+
                 imageUrl: widget.petImageUrl,
                 time: time,
               );
@@ -966,8 +971,9 @@ Future<void> _parseGPSData(String payload) async {
         await storageService.saveGeofenceExitCount(widget.petId, geofenceExitCount);
         _showGeofenceAlert();
         final notif = CustomNotification(
-          title: "📍 Geofence Alert",
-          body: "${widget.petName} exited the safe zone at $time.",
+         title: l10n.geofenceAlertTitle1,
+          body: l10n.geofenceAlertBody1(widget.petName, time),
+
           imageUrl: widget.petImageUrl,
           time: time,
         );
@@ -985,11 +991,12 @@ Future<void> _parseGPSData(String payload) async {
 }
 
   void _showGeofenceAlert() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text("🚨 Geofence Alert"),
-        content: Text("Animal has exited the safe zone at $time!"),
+        title: Text("🚨 ${l10n.geofenceAlertTitle}"),
+        content: Text("${l10n.geofenceAlertBody} $time!"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -1000,185 +1007,225 @@ Future<void> _parseGPSData(String payload) async {
     );
   }
 
-  void _showGPSCoords(BuildContext context) {
-    if (!mounted) return;
+ void _showGPSCoords(BuildContext context) {
+  if (!mounted) return;
 
-    OverlayState overlayState = Overlay.of(context);
-    late OverlayEntry overlayEntry;
+  final l10n = AppLocalizations.of(context)!;
+  OverlayState overlayState = Overlay.of(context);
+  late OverlayEntry overlayEntry;
 
-    overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: AppBar().preferredSize.height + 10, // Below the AppBar
-        right: 10, // Align to right
-        child: Material(
-          color: Colors.transparent,
-          child: StatefulBuilder(
-            builder: (context, setPopupState) {
-              return Container(
-                padding: EdgeInsets.all(10),
-                width: 250,
-                decoration: BoxDecoration(
-                  color: !isDarkMap? Colors.white : ui.Color.fromARGB(255, 11, 84, 111),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black26, blurRadius: 5),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.circle,
-                          color: canConnect
-                              ? (useCloud
-                                  ? Colors.greenAccent
-                                  : Colors.amberAccent)
-                              : Colors.redAccent,
-                          size: 20,
-                        ),
-                        SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            canConnect
-                                ? (useCloud
-                                    ? "Connected to Cloud MQTT"
-                                    : "Use Local WebSocket")
-                                : "No connection to GPS data",
-                            style: TextStyle(fontSize: 18,color: isDarkMap? Colors.white:Colors.black),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text("GPS Information",
-                        style: TextStyle(fontWeight: FontWeight.bold,color: isDarkMap? Colors.white:Colors.black)),
-                    Divider(),
-                    if (latitude == 0.0 && longitude == 0.0) ...[
-                      Text("⚠️  Gps data not recorded yet!",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
-                      Text("💡Try getting your pet outside",style: TextStyle(color: isDarkMap? Colors.white:Colors.black))
-                    ] else ...[
-                      Text("Latitude: $latitude",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("Longitude: $longitude",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("Altitude: $altitude m",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("Speed: $speed m/s",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("Satellites: $satellites",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("Time: $time"),
-                      Text(
-                          "Distance walked: ${(totalDistance / 1000).toStringAsFixed(2)} km",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                    ],
-                    SizedBox(height: 5),
-                    Text("Accelometer Information",
-                        style: TextStyle(fontWeight: FontWeight.bold,color: isDarkMap? Colors.white:Colors.black)),
-                    Divider(),
-                    if (detailedData) ...[
-                      Text("Acceleration: AX: $ax, AY: $ay, AZ: $az",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("Gyroscope: GX: $gx, GY: $gy, GZ: $gz",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("Angle: ANX: $anx, ANY: $any, ANZ: $anz",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("Magnitude: $mag",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      if (actMag != 0.0) Text("Active Magnitude: $actMag",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      if (noise != 0.0) Text("Noise: $noise",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("State: $state",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("Time: $timeAcc",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                    ] else ...[
-                      Text("State: $state",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                      Text("Time: $timeAcc",style: TextStyle(color: isDarkMap? Colors.white:Colors.black)),
-                    ],
-                    SizedBox(height: 5,),
-                    Text("Signal and Radio Noise Status",style: TextStyle(fontWeight: FontWeight.bold,color: isDarkMap? Colors.white:Colors.black)),
-                    Divider(),
-                    if(rssi == 0 && snr==0.0)...[
-                      Text("Signal and Noise not recorded yet!",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
-                    ]
-                    else ...[
-                      if(rssi>=-30 || rssi>=-60)...[
-                        Row(
-                          children: [
-                            Icon(Icons.circle,color: Colors.greenAccent,size: 10),
-                            SizedBox(width: 10,),
-                            Text("Signal is excelent",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
-                          ],
-                        ),
-                      ]else if(rssi>=-61 || rssi>=-90)...[
-                        Row(
-                          children: [
-                            Icon(Icons.circle,color: Colors.yellow,size: 10),
-                            SizedBox(width: 10,),
-                            Text("Signal is decent",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
-                          ],
-                        ),
-                      ]else if(rssi<=-91)...[
-                        Row(
-                          children: [
-                            Icon(Icons.circle,color: Colors.red,size: 10,),
-                            SizedBox(width: 10,),
-                            Text("Signal is weak",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
-                          ],
-                        ),
-                      ],
-
-                       if(snr>8)...[
-                        Row(
-                          children: [
-                            Icon(Icons.circle,color: Colors.greenAccent,size: 10),
-                            SizedBox(width: 10,),
-                            Text("Radio Noise is excelent",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
-                          ],
-                        ),
-                      ]else if(snr>5)...[
-                        Row(
-                          children: [
-                            Icon(Icons.circle,color: Colors.yellow,size: 10),
-                            SizedBox(width: 10,),
-                            Text("Radio Noise is good",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
-                          ],
-                        ),
-                      ]else if(snr<0)...[
-                        Row(
-                          children: [
-                            Icon(Icons.circle,color: Colors.red,size: 10),
-                            SizedBox(width: 10,),
-                            Text("Radio Noise is bad",style: TextStyle(color: isDarkMap? Colors.white:Colors.black),),
-                          ],
-                        ),
-                      ]
-                    ] ,
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          overlayEntry.remove();
-                        },
-                        child: Text("Close",style: TextStyle(color: isDarkMap? Colors.white:const ui.Color.fromARGB(255, 47, 36, 66))),
+  overlayEntry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: AppBar().preferredSize.height + 10,
+      right: 10,
+      child: Material(
+        color: Colors.transparent,
+        child: StatefulBuilder(
+          builder: (context, setPopupState) {
+            return Container(
+              padding: EdgeInsets.all(10),
+              width: 250,
+              decoration: BoxDecoration(
+                color: !isDarkMap
+                    ? Colors.white
+                    : ui.Color.fromARGB(255, 11, 84, 111),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.circle,
+                        color: canConnect
+                            ? (useCloud ? Colors.greenAccent : Colors.amberAccent)
+                            : Colors.redAccent,
+                        size: 20,
                       ),
+                      SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          canConnect
+                              ? (useCloud
+                                  ? l10n.connectionCloud
+                                  : l10n.connectionLocal)
+                              : l10n.connectionNone,
+                          style: TextStyle(
+                              fontSize: 18,
+                              color: isDarkMap ? Colors.white : Colors.black),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    l10n.gpsInfoTitle,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMap ? Colors.white : Colors.black,
                     ),
+                  ),
+                  Divider(),
+                  if (latitude == 0.0 && longitude == 0.0) ...[
+                    Text(
+                      "⚠️  ${l10n.gpsNotRecorded}",
+                      style: TextStyle(
+                          color: isDarkMap ? Colors.white : Colors.black),
+                    ),
+                    Text(
+                      "💡 ${l10n.gpsTryOutside}",
+                      style: TextStyle(
+                          color: isDarkMap ? Colors.white : Colors.black),
+                    )
+                  ] else ...[
+                    Text("${l10n.latitude}: $latitude",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.longitude}: $longitude",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.altitude}: $altitude m",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.speed}: $speed m/s",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.satellites}: $satellites",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.time}: $time",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.totalDistance}: ${(totalDistance / 1000).toStringAsFixed(2)} km",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
                   ],
-                ),
-              );
-            },
-          ),
+                  SizedBox(height: 5),
+                  Text(
+                    l10n.accelerometerTitle,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMap ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  Divider(),
+                  if (detailedData) ...[
+                    Text("${l10n.acceleration}: AX: $ax, AY: $ay, AZ: $az",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.gyroscope}: GX: $gx, GY: $gy, GZ: $gz",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.angle}: ANX: $anx, ANY: $any, ANZ: $anz",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.magnitude}: $mag",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    if (actMag != 0.0)
+                      Text("${l10n.activeMagnitude}: $actMag",
+                          style: TextStyle(
+                              color: isDarkMap ? Colors.white : Colors.black)),
+                    if (noise != 0.0)
+                      Text("${l10n.noise}: $noise",
+                          style: TextStyle(
+                              color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.state}: $state",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.time}: $timeAcc",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                  ] else ...[
+                    Text("${l10n.state}: $state",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                    Text("${l10n.time}: $timeAcc",
+                        style: TextStyle(
+                            color: isDarkMap ? Colors.white : Colors.black)),
+                  ],
+                  SizedBox(height: 5),
+                  Text(
+                    l10n.signalTitle,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMap ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  Divider(),
+                  if (rssi == 0 && snr == 0.0) ...[
+                    Text(
+                      l10n.signalNotRecorded,
+                      style: TextStyle(
+                          color: isDarkMap ? Colors.white : Colors.black),
+                    ),
+                  ] else ...[
+                    if (rssi >= -60) ...[
+                      _signalRow(Colors.greenAccent, l10n.signalExcellent),
+                    ] else if (rssi >= -90) ...[
+                      _signalRow(Colors.yellow, l10n.signalDecent),
+                    ] else ...[
+                      _signalRow(Colors.red, l10n.signalWeak),
+                    ],
+                    if (snr > 8) ...[
+                      _signalRow(Colors.greenAccent, l10n.noiseExcellent),
+                    ] else if (snr > 5) ...[
+                      _signalRow(Colors.yellow, l10n.noiseGood),
+                    ] else ...[
+                      _signalRow(Colors.red, l10n.noiseBad),
+                    ]
+                  ],
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => overlayEntry.remove(),
+                      child: Text(l10n.close,
+                          style: TextStyle(
+                              color: isDarkMap
+                                  ? Colors.white
+                                  : const ui.Color.fromARGB(255, 47, 36, 66))),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
-    );
+    ),
+  );
 
-    overlayState.insert(
-        overlayEntry); //inserts the overlayEntry into the Overlay system, making it visible on the screen
+  overlayState.insert(overlayEntry);
 
-    // periodically refresh overlay if widget is still mounted
-    Timer.periodic(Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        overlayEntry.remove();
-        return;
-      }
-      overlayEntry
-          .markNeedsBuild(); // refresh overlay to update values from mqtt, prevents showing the new data
-      // only if you open and close the info
-    });
-  }
+  Timer.periodic(Duration(seconds: 1), (timer) {
+    if (!mounted) {
+      timer.cancel();
+      overlayEntry.remove();
+      return;
+    }
+    overlayEntry.markNeedsBuild();
+  });
+}
+Widget _signalRow(Color color, String label) {
+  return Row(
+    children: [
+      Icon(Icons.circle, color: color, size: 10),
+      SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          label,
+          style: TextStyle(color: isDarkMap ? Colors.white : Colors.black),
+        ),
+      ),
+    ],
+  );
+}
+
 
   void _centerToPetMarker() {
+    final l10n = AppLocalizations.of(context)!;
     if (latitude != 0.0 && longitude != 0.0) {
       LatLng petLocation = LatLng(latitude, longitude);
       mapController.animateCamera(CameraUpdate.newLatLng(petLocation));
@@ -1191,8 +1238,8 @@ Future<void> _parseGPSData(String payload) async {
           backgroundColor: Colors.transparent,
           behavior: SnackBarBehavior.floating,
           content: AwesomeSnackbarContent(
-            title: 'Hold on',
-            message: 'Pet Location not available yet',
+            title: l10n.holdOn,
+            message: l10n.petLocationUnavailable,
             contentType: ContentType.failure,
             color: ui.Color.fromARGB(255, 214, 60, 73),
           ),
@@ -1269,6 +1316,7 @@ Future<void> _parseGPSData(String payload) async {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: isDarkMap? ui.Color.fromARGB(255, 24, 38, 96): Colors.white,
       appBar: PreferredSize(
@@ -1460,7 +1508,7 @@ Future<void> _parseGPSData(String payload) async {
                         ),
                         Expanded(
                           child: Text(
-                            "Currently tracking: ${widget.petName}",
+                           "${l10n.currentlyTracking(widget.petName)}",
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -1480,7 +1528,7 @@ Future<void> _parseGPSData(String payload) async {
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.purple),
-                      child: Text("Close"),
+                      child: Text(l10n.close),
                     ),
                   ],
                 ),
@@ -1492,7 +1540,7 @@ Future<void> _parseGPSData(String payload) async {
             child: FloatingActionButton.extended(
                 heroTag: 'home_button',
                 backgroundColor: Colors.white,
-                label: Text("I'm Home", style: TextStyle(color: Colors.black)),
+                label: Text(l10n.home, style: TextStyle(color: Colors.black)),
                 icon: Icon(Icons.home, color: Colors.black),
                 onPressed: () async {
                   if (outStartTime != null) {
@@ -1542,8 +1590,8 @@ Future<void> _parseGPSData(String payload) async {
                     backgroundColor: Colors.transparent,
                     behavior: SnackBarBehavior.floating,
                     content: AwesomeSnackbarContent(
-                      title: 'Set Geofence',
-                      message: '📍 Tap on map to set geofence center',
+                     title: l10n.setGeofenceTitle,
+                    message: l10n.setGeofenceMessage,
                       contentType: ContentType.warning,
                       color: ui.Color.fromARGB(255, 60, 214, 193),
                     ),

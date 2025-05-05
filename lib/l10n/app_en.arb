@@ -187,8 +187,149 @@
     "heatmapInfoTitle": "Heatmap Info",
     "heatmapInfoBody": "🔥 The heatmap shows where your pet has spent the most time during walks or activity.",
     "heatmapInfoDetails": "Red pulsing circle areas = more frequent visits.\n🏠 The area near home is ignored by default.\n📍 Multiple sessions are analyzed.\nExplore the map to see where your pet likes to hang out!",
-    "closeButton": "Close"
+    "closeButton": "Close",
 
+    "sessionAnalysisTitle": "Session Analysis",
+    "sessionStats": "📊 Session Stats",
+    "durationComparison": "⏱️ Duration: {percent}% less than the longest session",
+    "longestSession": "⏱️ This is your pet's longest session!",
+    "distanceComparison": "📏 Distance: {percent}% less than the longest distance",
+    "longestDistance": "📏 This is your pet's longest distance!",
+    "nearHomeVsAway": "📍 Near Home vs Away",
+    "sessionDistanceChart": "🏃‍♂️ Session Distance Compared to Others",
+    "sessionNumberXAxis": "Session Number",
+    "distanceYAxis": "Distance (meters)",
+    "positiveMessage1": "🔥 Good job! Your pet was very active!",
+    "positiveMessage2": "🎉 That was an amazing walk!",
+    "positiveMessage3": "🏅 Your pet hit a new milestone!",
+    "positiveMessage4": "🐾 Active pets are happy pets!",
+    "positiveMessage5": "🚀 Keep it up! Great exercise!",
+    "positiveMessage6": "🌟 Excellent session! Your pet loved it!",
 
+    "encouragementMessage1": "🚶‍♂️ Try to walk your pet more next time.",
+    "encouragementMessage2": "🦴 Your pet could use more activity.",
+    "encouragementMessage3": "🏃‍♀️ Let's explore more next time!",
+    "encouragementMessage4": "🕒 Short session! Go a bit longer next time.",
+    "encouragementMessage5": "📉 That walk was too brief!",
+    "encouragementMessage6": "🐶 Your pet needs more outdoor fun!",
+
+    "setHomeTitle": "Set Home Location",
+    "setHomeMessage": "📍 Tap on map to set home base for your pet",
+    "confirmHomeButton": "Confirm Home Location",
+
+    "helpTitle": "Help",
+    "helpImHomeTitle": "💡 I'm Home Button",
+    "helpImHomeContent": "• The \"I'm Home\" button should be pressed once your pet is safely back home.\n• This action will stop the out-of-home timer and record the total time spent outside.\n• You can track your pet’s journey and total distance using the live map.",
+    "helpMapTitle": "📍 Map Controls",
+    "helpMapContent": "• Use the + and - buttons to zoom in and out.\n• Tap on the location icon to place geofences.\n• The location icon centers the map on your pet or home.",
+    "helpFollowModeTitle": "🎯 Follow Mode",
+    "helpFollowModeContent": "• Follow Mode automatically keeps the camera centered on your pet's location in real-time.\n• To enable it, tap the eye icon\n• This helps you monitor your pet’s movements without manually adjusting the map.\n• Tap the icon again to exit this mode",
+    "helpNotificationsTitle": "🔔 Notifications",
+    "helpNotificationsContent": "You'll receive alerts based on your pet’s activity, location, and sensor data (like falling or high impact).",
+    "helpConnectivityTitle": "📶 Connectivity Logic",
+    "helpConnectivityDescription": "The app decides the best connection strategy based on internet availability:",
+    "helpConnectivityModes": "• ✅ *Cloud MQTT* is used when both the phone and ESP32 Gateway device are connected to the internet.\n• 🌐 *Local WebSocket* is used when neither the phone nor the ESP Gateway has internet, and they are on the same WiFi (AP mode).\n• ⚠️ If only one device has internet, GPS data cannot be transmitted.\n• 🔄 Connect to Wifi Access Point: WIFI: ESP32_Pet_Tracker, PASSWORD: 9876543210",
+    "helpConnectivityTip": "Tip: If ESP32 Gateway is not online, connect your phone to the ESP hotspot for local fallback.",
+
+      "alert_sleep1": "😴 Your pet is snoozing peacefully.",
+      "alert_sleep2": "😌 Nap time! Your buddy is asleep.",
+      "alert_sleep3": "🌙 A well-deserved rest for your pet.",
+      "alert_sleep4": "💤 Looks like a deep sleep going on!",
+      "alert_sleep5": "🐾 Resting mode activated.",
+    
+      "alert_walk1": "🚶‍♂️ Your pet is going for a walk.",
+      "alert_walk2": "🐕 Strolling around like a champ!",
+      "alert_walk3": "🐾 A casual walk detected.",
+      "alert_walk4": "🦴 Exploring the area step by step.",
+      "alert_walk5": "😎 Your pet is on the move.",
+    
+      "alert_run1": "🏃 Your pet is running full speed!",
+      "alert_run2": "🐶 Zoomies activated!",
+      "alert_run3": "💨 High energy detected!",
+      "alert_run4": "🏞️ On a wild run through the terrain.",
+      "alert_run5": "⚡ Sprint mode enabled!",
+    
+      "alert_fall_title": "⚠️ Fall Detected!",
+      "alert_fall1": "🪨 Your pet may have fallen.",
+      "alert_fall2": "🚨 Sudden drop in activity. Check in!",
+      "alert_fall3": "🐾 Fall alert triggered!",
+      "alert_fall4": "😟 Your buddy might have slipped.",
+      "alert_fall5": "📉 Acceleration indicates a fall.",
+    
+      "alert_impact_title": "💥 Impact Detected!",
+      "alert_impact1": "💢 A strong impact has been recorded.",
+      "alert_impact2": "🚨 Something just hit hard!",
+      "alert_impact3": "🐾 Impact alert: sudden motion spike!",
+      "alert_impact4": "🧱 Pet experienced a jolt!",
+      "alert_impact5": "⚠️ High-force movement detected.",
+      
+      "activityAlertTitle": "Activity Alert",
+      "geofenceAlertTitle": "Geofence Alert",
+        "geofenceAlertBody": "Animal has exited the safe zone at",
+        "gpsInfoTitle": "GPS Information",
+        "gpsNotRecorded": "GPS data not recorded yet!",
+        "gpsTryOutside": "Try getting your pet outside",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "altitude": "Altitude",
+        "speed": "Speed",
+        "satellites": "Satellites",
+        "time": "Time",
+        "totalDistance": "Distance walked",
+        "accelerometerTitle": "Accelerometer Information",
+        "acceleration": "Acceleration",
+        "gyroscope": "Gyroscope",
+        "angle": "Angle",
+        "magnitude": "Magnitude",
+        "activeMagnitude": "Active Magnitude",
+        "noise": "Noise",
+        "state": "State",
+        "signalTitle": "Signal and Radio Noise Status",
+        "signalNotRecorded": "Signal and Noise not recorded yet!",
+        "signalExcellent": "Signal is excellent",
+        "signalDecent": "Signal is decent",
+        "signalWeak": "Signal is weak",
+        "noiseExcellent": "Radio Noise is excellent",
+        "noiseGood": "Radio Noise is good",
+        "noiseBad": "Radio Noise is bad",
+        "close": "Close",
+        "connectionCloud": "Connected to Cloud MQTT",
+        "connectionLocal": "Use Local WebSocket",
+        "connectionNone": "No connection to GPS data"  ,
+        
+        "holdOn": "Hold on",
+  "petLocationUnavailable": "Pet Location not available yet",
+
+  "currentlyTracking": "Currently tracking: {petName}",
+  "@currentlyTracking": {
+    "description": "Shows which pet is currently being tracked.",
+    "placeholders": {
+      "petName": {}
+    }
+  },
+  "home":"I'm home",
+  "setGeofenceTitle": "Set Geofence",
+  "setGeofenceMessage": "📍 Tap on map to set geofence center",
+
+    "geofenceAlertTitle1": "📍 Geofence Alert",
+    "geofenceAlertBody1": "{petName} exited the safe zone at {time}.",
+    "@geofenceAlertBody1": {
+      "description": "Notifies the user that the pet has left the geofence",
+      "placeholders": {
+        "petName": {},
+        "time": {}
+      }
+    },
+  
+"petLeftHomeTitle": "🏠 Pet Left Home",
+  "petLeftHomeBody": "{petName} has left home at {time}.",
+  "@petLeftHomeBody": {
+    "description": "Alert when pet leaves home",
+    "placeholders": {
+      "petName": {},
+      "time": {}
+    }
+  },
+  "searchLocation":"Search location"
   }
   
