@@ -512,10 +512,12 @@ Future<void> _setMapStyle() async {
       canConnect = true;
       _connectToWebSocket();
     } else if (phoneOnline && !espOnline) {
-      // Telefonul are net, ESP32 nu => imposibil MQTT
+      // Telefonul are net, ESP32 nu => conectam telefonul la propriul wifi a lui esp
       canConnect = false;
+      useCloud = false;
+      _connectToWebSocket();
       print(
-          "⚠️ ESP32 nu poate publica în cloud. Nu sunt disponibile date GPS.");
+          "⚠️ ESP32 nu e conectat la net dar telefonul e ");
     } else if (!phoneOnline && espOnline) {
       // Telefonul nu e online => poate fi conectat la ESP AP
       canConnect = false;
@@ -1508,7 +1510,7 @@ Widget _signalRow(Color color, String label) {
                         ),
                         Expanded(
                           child: Text(
-                           "${l10n.currentlyTracking(widget.petName)}",
+                           l10n.currentlyTracking(widget.petName),
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

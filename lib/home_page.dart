@@ -6,7 +6,6 @@ import 'package:pet_watch/history_page.dart';
 import 'package:pet_watch/main.dart';
 import 'package:pet_watch/pet_add/add_pet.dart';
 import 'package:pet_watch/pet_add/pet_card.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 
 class HomePage extends StatefulWidget {
