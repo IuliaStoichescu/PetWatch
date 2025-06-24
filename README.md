@@ -1,16 +1,19 @@
-# my_pet_watch
+🐾 Pet Watch – Smart Pet Monitoring System
+Pet Watch is an intelligent, low-power tracking and monitoring system designed for companion animals. The project combines a compact hardware device based on the ESP32 microcontroller, LoRa communication, and GPS + accelerometer sensors, with a cross-platform Flutter mobile application and a Firebase + MQTT-based backend.
 
-A new Flutter project.
+Features:
+Real-time GPS location tracking
+Activity monitoring (sleeping, walking, running, fall/impact detection)
+Geofencing alerts and virtual safe zones
+Offline fallback mode via WebSocket if internet is unavailable
+MQTT communication for lightweight, real-time data streaming
+Custom mobile app with user authentication, animal profile management, session history & heatmap
+Multilingual interface (English & Romanian)
+Energy-efficient design – no monthly subscription required
 
-## Getting Started
+Technologies Used:
+ESP32-WROOM, MPU6050, NEO-6M GPS, LoRa RFM96
+Arduino IDE, Flutter, Dart, Firebase, MQTT, HiveMQ
+Google Maps API, SharedPreferences, Visual Studio Code
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+This solution aims to offer a flexible, affordable, and reliable tool for pet owners who seek increased safety and awareness of their animals’ whereabouts and behavior.
