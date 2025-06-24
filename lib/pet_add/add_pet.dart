@@ -80,6 +80,7 @@ class _AddPetState extends State<AddPet> {
   'Chow Chow',
   'English Setter',
   'Irish Setter',
+  'Caucasian Shepperd',
   'Unknown',
 ];
 
