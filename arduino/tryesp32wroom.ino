@@ -4,6 +4,8 @@
 #include <HardwareSerial.h>
 #include <MPU6050_tockn.h>
 #include <Wire.h>
+#include <WiFi.h>
+#include <esp_wifi.h>
 
 MPU6050 mpu6050(Wire); // Accelerometer
 
@@ -21,13 +23,13 @@ MPU6050 mpu6050(Wire); // Accelerometer
 #define MSG_TYPE_EVENT "EVT"
 
 // Activity thresholds - adjusted for more sensitive detection
-#define ACTIVITY_THRESHOLD_SLEEP 0.03   // Almost no movement - reduced from 0.15
-#define ACTIVITY_THRESHOLD_WALK 0.08   // Walking pattern - reduced from 0.5
-#define ACTIVITY_THRESHOLD_RUN 1.0     // Running pattern - reduced from 1.8
+#define ACTIVITY_THRESHOLD_SLEEP 0.020   // Almost no movement - reduced from 0.15
+#define ACTIVITY_THRESHOLD_WALK 0.2   // Walking pattern - reduced from 0.5
+#define ACTIVITY_THRESHOLD_RUN 0.25    // Running pattern - reduced from 1.8
 
 // Fall and impact detection
-#define FALL_THRESHOLD 2.5              // Sudden acceleration change indicating potential fall
-#define IMPACT_THRESHOLD 3.5            // High acceleration indicating impact
+#define FALL_THRESHOLD 0.8            // Sudden acceleration change indicating potential fall
+#define IMPACT_THRESHOLD 1.35          // High acceleration indicating impact
 #define STATIONARY_AFTER_FALL 0.3       // Low movement after fall event
 #define FALL_DETECTION_WINDOW 1000      // Window to check for post-fall stillness (ms)
 
@@ -61,6 +63,46 @@ bool calibrated = false;
 
 bool accelAvailable = true;//for cases when it gets broken like my case 
 
+#include <esp_sleep.h>
+//RTC_DATA_ATTR String lastActivityBeforeSleep = "SLEEP"; //for deep sleep mode
+#define SLEEP_TRIGGER_DURATION 60000     // 90 sec de inactivitate
+#define DEEP_SLEEP_DURATION_SEC 30       // doarme 30 sec
+
+bool gpsInStandby = false;
+unsigned long lastGPSActivity = 0;
+const unsigned long GPS_STANDBY_TIMEOUT = 120000; // 2 minutes of inactivity before GPS standby
+const unsigned long GPS_WAKEUP_INTERVAL = 300000; // 5 minutes - wake GPS to check position
+unsigned long lastGPSWakeup = 0;
+
+void setGPSStandby() {
+  if (!gpsInStandby && !emergencyEventInProgress) {
+    Serial.println("Putting GPS in standby mode...");
+    gpsSerial.println("$PMTK161,0*28"); // Standby mode
+    delay(100);
+    gpsSerial.println("$PMTK225,4*2F"); // Backup mode
+    delay(100);
+    gpsInStandby = true;
+    Serial.println("GPS in standby mode");
+  }
+}
+
+void wakeGPSFromStandby() {
+  if (gpsInStandby || emergencyEventInProgress) {
+    Serial.println("Waking GPS from standby...");
+    gpsSerial.println("$PMTK225,0*2B"); // Exit backup mode
+    delay(200);
+    gpsSerial.println("$PMTK161,1*29"); // Exit standby mode
+    delay(200);
+    // Hot restart for faster acquisition
+    gpsSerial.println("$PMTK101*32"); // Hot restart
+    delay(100);
+    gpsInStandby = false;
+    lastGPSWakeup = millis();
+    lastGPSActivity = millis();
+    Serial.println("GPS wakened from standby");
+  }
+}
+
 bool testPin(int pin) {
   pinMode(pin, OUTPUT);
   digitalWrite(pin, HIGH);
@@ -72,7 +114,18 @@ bool testPin(int pin) {
 
 void setup() {
   Serial.begin(9600);
-
+  esp_sleep_wakeup_cause_t wakeupReason = esp_sleep_get_wakeup_cause();
+  setCpuFrequencyMhz(80);
+  WiFi.mode(WIFI_OFF);
+  btStop();
+  esp_wifi_deinit();
+  Serial.println("WiFi and Bluetooth disabled");
+  if (wakeupReason == ESP_SLEEP_WAKEUP_TIMER) {
+    Serial.println("Woke up from deep sleep.");
+    wakeGPSFromStandby();
+  } else {
+    Serial.println("Normal turn on");
+  }
   Wire.begin(21, 22, 400000); 
   mpu6050.begin();
   Wire.beginTransmission(0x68); 
@@ -83,13 +136,10 @@ void setup() {
     Serial.println("MPU6050 detected!");
       mpu6050.calcGyroOffsets(true);
   }
-
   gpsSerial.begin(GPS_BAUD, SERIAL_8N1, RXD2, TXD2);
   delay(1000);
-
-Serial.println("Testing SS pin: " + String(testPin(SS) ? "OK" : "FAILED"));
-Serial.println("Testing RST pin: " + String(testPin(RST) ? "OK" : "FAILED"));
-Serial.println("Testing DIO0 pin: " + String(testPin(DIO0) ? "OK" : "FAILED"));
+  lastGPSActivity = millis();//for battery life longer 
+  lastGPSWakeup = millis();
   Serial.println("Initializing LoRa...");
   LoRa.setPins(SS, RST, DIO0);
   if (!LoRa.begin(868E6)) {
@@ -151,273 +201,6 @@ void calibrateAccelerometer() {
   
   calibrated = true;
 }
-
-void loop() {
-  while (gpsSerial.available() > 100) {
-  gpsSerial.read(); // Clear backlog if buffer is too full
-}
-
-while (gpsSerial.available()) {
-  char c = gpsSerial.read();
-  gps.encode(c);
-  Serial.write(c);//nmea pt date brute pt testare si depanare
-}
- Serial.print("Numar sateliti: "); Serial.println(gps.satellites.value());
- Serial.print("Precizie HDOP: "); Serial.println(gps.hdop.hdop());
-Serial.print("GPS fix: ");
-Serial.print(gps.location.isValid() ? "VALID" : "INVALID");
-if (gps.location.isValid()&& gps.satellites.value() > 3) {
-  Serial.print(", Lat: ");
-  Serial.print(gps.location.lat(), 6);
-  Serial.print(", Lon: ");
-  Serial.println(gps.location.lng(), 6);
-  lastValidGPS = millis();
-}
-
-// Send GPS data if:
-// - Location is valid AND
-// - (Emergency is active OR it's been more than X seconds since last send)
-unsigned long currentMillis = millis();
-unsigned long gpsInterval = emergencyEventInProgress ? 500 : 1000;  // Send every 0,5s in emergency, 1s normally
-
-if (gps.location.isValid() && gps.satellites.value() > 3) {
-    if (currentMillis - lastGPSTime > gpsInterval) {
-      sendGPSData();
-      lastLat = gps.location.lat();
-      lastLon = gps.location.lng();
-      lastGPSTime = currentMillis;
-      lastGPSUpdateTime = currentMillis;
-      Serial.println("GPS sent due to interval trigger.");
-    }
-  } else if (millis() - lastValidGPS > 30000) {
-    Serial.println(" WARNING: No valid GPS data for 30 seconds!");
-  }
-
-  if(accelAvailable){
-      mpu6050.update();
-      float ax = mpu6050.getAccX();
-      float ay = mpu6050.getAccY();
-      float az = mpu6050.getAccZ();
-      
-      // Calculate raw magnitude (with gravity)
-      float rawMagnitude = sqrt(ax*ax + ay*ay + az*az);
-      
-      // Apply calibration offset to compensate for sensor bias
-      float calibratedMagnitude = rawMagnitude - accelCalibrationOffset;
-      
-      // Subtract gravity component (approximately 1.0)
-      // This helps isolate user movement from constant gravity
-      float activityMagnitude = abs(calibratedMagnitude - 1.0);
-      
-      // Enhanced debug output
-      Serial.print("Raw: ");
-      Serial.print(rawMagnitude, 4);
-      Serial.print(", Calibrated: ");
-      Serial.print(calibratedMagnitude, 4);
-      Serial.print(", Activity: ");
-      Serial.print(activityMagnitude, 4);
-      Serial.print(", Threshold: ");
-      Serial.println(ACTIVITY_THRESHOLD_WALK, 4);
-      
-      // Add to buffer
-      accelBuffer[bufferIndex][0] = ax;
-      accelBuffer[bufferIndex][1] = ay;
-      accelBuffer[bufferIndex][2] = az;
-      bufferIndex = (bufferIndex + 1) % 10;
-      if (sampleCount < 10) sampleCount++;
-      
-      // Check for fall or impact
-      checkForFallOrImpact(rawMagnitude, ax, ay, az);
-      
-      if (!fallDetected && calibrated && sampleCount >= 5) {
-        detectActivity(activityMagnitude);
-      }
-      if (emergencyEventInProgress && (millis() - emergencyStartTime > EMERGENCY_TIMEOUT)) {
-        emergencyEventInProgress = false;
-        Serial.println("Emergency mode ended");
-      }
-      if (millis() - lastActivityTime > 1000) {
-        if (fallDetected) {
-          sendEventData("FALL");
-          if (millis() - fallTimestamp > FALL_DETECTION_WINDOW) {
-            fallDetected = false;
-          }
-        } else {
-          sendActivityState(currentActivity);
-          unsigned long accelSendInterval = 5000;
-          if (currentActivity == "SLEEP") {
-            accelSendInterval = 15000;
-          } else if (currentActivity == "RUN" || emergencyEventInProgress) {
-            accelSendInterval = 2000;
-          }
-
-          if (millis() - lastAccelRawTime > accelSendInterval && !emergencyEventInProgress) {
-            sendAccelData();
-            lastAccelRawTime = millis();
-          }
-        }
-
-        lastActivityTime = millis();
-      }
-    delay(emergencyEventInProgress ? 50 : 200);
-  }
-}
-
-void checkForFallOrImpact(float magnitude, float ax, float ay, float az) {
-  static float lastMagnitude = 0;
-  static unsigned long lastHighImpact = 0;
-  float accelChange = abs(magnitude - lastMagnitude);
-  
-  if (magnitude > IMPACT_THRESHOLD) {
-    emergencyEventInProgress = true;
-    emergencyStartTime = millis();
-    Serial.println("EMERGENCY MODE: Impact detected!");
-    
-    sendEventData("IMPACT");
-    lastHighImpact = millis();
-
-    if (gps.location.isValid()) {
-      sendGPSData(); 
-  }
-  }
-  if (!fallDetected && accelChange > FALL_THRESHOLD) {
-    emergencyEventInProgress = true;
-    emergencyStartTime = millis();
-    Serial.println("EMERGENCY MODE: Potential fall detected!");
-    fallTimestamp = millis();
-    fallDetected = true;
-  }
-
-  if (fallDetected && (millis() - fallTimestamp > 500)) {
-    float avgMovement = 0;
-    for (int i = 0; i < sampleCount; i++) {
-      float mx = accelBuffer[i][0];
-      float my = accelBuffer[i][1];
-      float mz = accelBuffer[i][2];
-      avgMovement += sqrt(mx*mx + my*my + mz*mz);
-    }
-    avgMovement /= sampleCount;
-    if (avgMovement > STATIONARY_AFTER_FALL + 0.5) {
-      fallDetected = false;
-      emergencyEventInProgress = false;
-      Serial.println("Fall detection canceled - movement detected");
-    }
-  }
-  lastMagnitude = magnitude;
-}
-
-void detectActivity(float activityMagnitude) {
-  // Calculate average and variance of recent accelerations (activity magnitude)
-  float avgMagnitude = 0;
-  float varMagnitude = 0;
-  float maxVariation = 0;
-  
-  // Calculate average activity magnitude (excluding gravity)
-  for (int i = 0; i < sampleCount; i++) {
-    float mx = accelBuffer[i][0];
-    float my = accelBuffer[i][1];
-    float mz = accelBuffer[i][2];
-    float mag = sqrt(mx*mx + my*my + mz*mz);
-    float actMag = abs(mag - 1.0 - accelCalibrationOffset); // Remove gravity component
-    avgMagnitude += actMag;
-  }
-  avgMagnitude /= sampleCount;
-  
-  // Calculate variance and find max variation
-  for (int i = 0; i < sampleCount; i++) {
-    float mx = accelBuffer[i][0];
-    float my = accelBuffer[i][1];
-    float mz = accelBuffer[i][2];
-    float mag = sqrt(mx*mx + my*my + mz*mz);
-    float actMag = abs(mag - 1.0 - accelCalibrationOffset);
-    varMagnitude += (actMag - avgMagnitude) * (actMag - avgMagnitude);
-    maxVariation = max(maxVariation, abs(actMag - avgMagnitude));
-  }
-  varMagnitude /= sampleCount;
-  
-  // Detect rhythmic pattern for walking/running by analyzing consecutive samples
-  bool hasRhythm = false;
-  int rhythmCount = 0;
-  
-  // Look for alternating patterns in the buffer that would indicate steps
-  for (int i = 1; i < sampleCount; i++) {
-    float prevMag = sqrt(accelBuffer[i-1][0]*accelBuffer[i-1][0] + 
-                        accelBuffer[i-1][1]*accelBuffer[i-1][1] + 
-                        accelBuffer[i-1][2]*accelBuffer[i-1][2]);
-    float currMag = sqrt(accelBuffer[i][0]*accelBuffer[i][0] + 
-                        accelBuffer[i][1]*accelBuffer[i][1] + 
-                        accelBuffer[i][2]*accelBuffer[i][2]);
-    
-    if (abs(currMag - prevMag) > noiseThreshold * 1.5) { // Reduced threshold multiplier
-      rhythmCount++;
-    }
-  }
-  
-  // More sensitive rhythm detection
-  hasRhythm = (rhythmCount >= sampleCount / 4); // Changed from /3 to /4
-  
-  // Ignore very small movements that are likely just sensor noise
-  if (avgMagnitude < noiseThreshold && maxVariation < noiseThreshold * 1.5) { // Reduced threshold
-    avgMagnitude = 0;
-    varMagnitude = 0;
-  }
-
-  String newActivity;  
-  if (avgMagnitude < ACTIVITY_THRESHOLD_SLEEP) {
-    newActivity = "SLEEP";
-  } else if (avgMagnitude < ACTIVITY_THRESHOLD_WALK) {
-    if (hasRhythm && varMagnitude > 0.005) {
-      newActivity = "WALK";
-    } else {
-      newActivity = "SLEEP";
-    }
-  } else if (avgMagnitude < ACTIVITY_THRESHOLD_RUN) {
-    if (varMagnitude > 0.005) { 
-      newActivity = "WALK";
-    } else {
-      newActivity = "SLEEP"; 
-    }
-  } else {
-    if (hasRhythm && varMagnitude > 0.08) { 
-      newActivity = "RUN";
-    } else {
-      newActivity = "WALK"; 
-    }
-  }
-
-  static String lastActivity = "SLEEP";
-  static int activityCounter = 0;
-  
-  if (newActivity == lastActivity) {
-    activityCounter++;
-    if (activityCounter >= 2) { // Changed from 5 to 3
-      currentActivity = newActivity;
-      activityCounter = 2; // Cap the counter
-    }
-  } else {
-    lastActivity = newActivity;
-    activityCounter = 1;
-  }
-  
-  // Enhanced debug info
-  Serial.print("Activity: ");
-  Serial.print(newActivity);
-  Serial.print(" (current: ");
-  Serial.print(currentActivity);
-  Serial.print("), Mag: ");
-  Serial.print(avgMagnitude, 4);
-  Serial.print(", Var: ");
-  Serial.print(varMagnitude, 4);
-  Serial.print(", Rhythm: ");
-  Serial.print(rhythmCount);
-  Serial.print("/");
-  Serial.print(sampleCount/4);
-  Serial.print(" (hasRhythm=");
-  Serial.print(hasRhythm ? "true" : "false");
-  Serial.print("), Counter: ");
-  Serial.println(activityCounter);
-}
-
 bool isSummerTime(int year, int month, int day, int hour) {
   int lastSundayMarch = 31;
   while ((year * 10000 + 3 * 100 + lastSundayMarch) % 7 != 0) {
@@ -483,6 +266,11 @@ void sendGPSData() {
 
 void sendActivityState(String state) {
   if (!accelAvailable) return;
+  if (emergencyEventInProgress) {
+  Serial.println("⚠️ Skipping normal activity send during EMERGENCY.");
+  return;
+}
+
 // int timezoneOffset = isSummerTime(gps.date.year(), gps.date.month(), gps.date.day(), gps.time.hour()) ? 3 : 2;
   String timeString = getFormattedTime();
 
@@ -565,4 +353,343 @@ void sendEventData(String eventType) {
   LoRa.endPacket();
   
   LoRa.setTxPower(17);
+}
+
+void checkForFallOrImpact(float magnitude, float ax, float ay, float az) {
+  static bool firstSample = true;
+  static float lastMagnitude = 0;
+  float accelChange = abs(magnitude - lastMagnitude);
+
+  if (firstSample) {
+    lastMagnitude = magnitude;
+    firstSample = false;
+    return;  // Nu compara la prima rundă
+  }
+  static unsigned long lastHighImpact = 0;
+  
+  if (magnitude > IMPACT_THRESHOLD) {
+    emergencyEventInProgress = true;
+    emergencyStartTime = millis();
+    Serial.println("EMERGENCY MODE: Impact detected!");
+    if (gpsInStandby) {
+      wakeGPSFromStandby();
+    }
+
+    sendEventData("IMPACT");
+    currentActivity = "EMERGENCY";
+
+    lastHighImpact = millis();
+
+    if (gps.location.isValid()) {
+      sendGPSData(); 
+  }
+  }
+  if (!fallDetected && accelChange > FALL_THRESHOLD) {
+    emergencyEventInProgress = true;
+    emergencyStartTime = millis();
+    Serial.println("EMERGENCY MODE: Potential fall detected!");
+    if (gpsInStandby) {
+      wakeGPSFromStandby();
+    }
+  
+    fallTimestamp = millis();
+    fallDetected = true;
+    currentActivity = "EMERGENCY";
+  }
+
+  if (fallDetected && (millis() - fallTimestamp > 500)) {
+    float avgMovement = 0;
+    for (int i = 0; i < sampleCount; i++) {
+      float mx = accelBuffer[i][0];
+      float my = accelBuffer[i][1];
+      float mz = accelBuffer[i][2];
+      avgMovement += sqrt(mx*mx + my*my + mz*mz);
+    }
+    avgMovement /= sampleCount;
+    if (avgMovement > STATIONARY_AFTER_FALL + 0.5) {
+      fallDetected = false;
+      emergencyEventInProgress = false;
+      Serial.println("Fall detection canceled - movement detected");
+    }
+  }
+  lastMagnitude = magnitude;
+  Serial.print("→ Magnitude: ");
+Serial.print(magnitude);
+Serial.print(", Last: ");
+Serial.print(lastMagnitude);
+Serial.print(", Change: ");
+Serial.println(accelChange);
+
+}
+
+void detectActivity(float activityMagnitude) {
+  // Calculate average and variance of recent accelerations (activity magnitude)
+  float avgMagnitude = 0;
+  float varMagnitude = 0;
+  float maxVariation = 0;
+  
+  // Calculate average activity magnitude (excluding gravity)
+  for (int i = 0; i < sampleCount; i++) {
+    float mx = accelBuffer[i][0];
+    float my = accelBuffer[i][1];
+    float mz = accelBuffer[i][2];
+    float mag = sqrt(mx*mx + my*my + mz*mz);
+    float actMag = abs(mag - 1.0 - accelCalibrationOffset); // Remove gravity component
+    avgMagnitude += actMag;
+  }
+  avgMagnitude /= sampleCount;
+  
+  // Calculate variance and find max variation
+  for (int i = 0; i < sampleCount; i++) {
+    float mx = accelBuffer[i][0];
+    float my = accelBuffer[i][1];
+    float mz = accelBuffer[i][2];
+    float mag = sqrt(mx*mx + my*my + mz*mz);
+    float actMag = abs(mag - 1.0 - accelCalibrationOffset);
+    varMagnitude += (actMag - avgMagnitude) * (actMag - avgMagnitude);
+    maxVariation = max(maxVariation, abs(actMag - avgMagnitude));
+  }
+  varMagnitude /= sampleCount;
+  
+  // Detect rhythmic pattern for walking/running by analyzing consecutive samples
+  bool hasRhythm = false;
+  int rhythmCount = 0;
+  
+  // Look for alternating patterns in the buffer that would indicate steps
+  for (int i = 1; i < sampleCount; i++) {
+    float prevMag = sqrt(accelBuffer[i-1][0]*accelBuffer[i-1][0] + 
+                        accelBuffer[i-1][1]*accelBuffer[i-1][1] + 
+                        accelBuffer[i-1][2]*accelBuffer[i-1][2]);
+    float currMag = sqrt(accelBuffer[i][0]*accelBuffer[i][0] + 
+                        accelBuffer[i][1]*accelBuffer[i][1] + 
+                        accelBuffer[i][2]*accelBuffer[i][2]);
+    
+    if (abs(currMag - prevMag) > noiseThreshold * 1.5) { // Reduced threshold multiplier
+      rhythmCount++;
+    }
+  }
+  
+  // More sensitive rhythm detection
+  hasRhythm = (rhythmCount >= sampleCount / 4); // Changed from /3 to /4
+  
+  // Ignore very small movements that are likely just sensor noise
+  if (avgMagnitude < noiseThreshold && maxVariation < noiseThreshold * 1.5) { // Reduced threshold
+    avgMagnitude = 0;
+    varMagnitude = 0;
+  }
+
+  String newActivity;  
+  if (avgMagnitude < ACTIVITY_THRESHOLD_SLEEP) {
+    newActivity = "SLEEP";
+  } else if (avgMagnitude < ACTIVITY_THRESHOLD_WALK) {
+    if (hasRhythm && varMagnitude > 0.005) {
+      newActivity = "WALK";
+    } else {
+      newActivity = "SLEEP";
+    }
+  } else if (avgMagnitude < ACTIVITY_THRESHOLD_RUN) {
+    if (varMagnitude > 0.005) { 
+      newActivity = "RUN";
+    } else {
+      newActivity = "SLEEP"; 
+    }
+  } else {
+    if (hasRhythm && varMagnitude > 0.02) { 
+      newActivity = "RUN";
+    } else {
+      newActivity = "WALK"; 
+    }
+  }
+
+  static String lastActivity = "SLEEP";
+  static int activityCounter = 0;
+  
+  if (newActivity == lastActivity) {
+    activityCounter++;
+    if (activityCounter >= 2) { // Changed from 5 to 3
+      currentActivity = newActivity;
+      activityCounter = 2; // Cap the counter
+    }
+  } else {
+    lastActivity = newActivity;
+    activityCounter = 1;
+  }
+  
+  // Enhanced debug info
+  Serial.print("Activity: ");
+  Serial.print(newActivity);
+  Serial.print(" (current: ");
+  Serial.print(currentActivity);
+  Serial.print("), Mag: ");
+  Serial.print(avgMagnitude, 4);
+  Serial.print(", Var: ");
+  Serial.print(varMagnitude, 4);
+  Serial.print(", Rhythm: ");
+  Serial.print(rhythmCount);
+  Serial.print("/");
+  Serial.print(sampleCount/4);
+  Serial.print(" (hasRhythm=");
+  Serial.print(hasRhythm ? "true" : "false");
+  Serial.print("), Counter: ");
+  Serial.println(activityCounter);
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  if (gpsInStandby && (currentMillis - lastGPSWakeup > GPS_WAKEUP_INTERVAL)) {
+    wakeGPSFromStandby();
+  }
+
+  if (!gpsInStandby && !emergencyEventInProgress && 
+        currentActivity == "SLEEP" && 
+        (currentMillis - lastGPSActivity > GPS_STANDBY_TIMEOUT)) {
+      setGPSStandby();
+    }
+  if (emergencyEventInProgress && gpsInStandby) {
+      wakeGPSFromStandby();
+    }
+
+  while (gpsSerial.available() > 100) {
+  gpsSerial.read(); // Clear backlog if buffer is too full
+}
+
+    if(!gpsInStandby){
+      while (gpsSerial.available()) {
+      char c = gpsSerial.read();
+      gps.encode(c);
+      Serial.write(c);//nmea pt date brute pt testare si depanare
+     }
+    }
+ Serial.print("Numar sateliti: "); Serial.println(gps.satellites.value());
+ Serial.print("Precizie HDOP: "); Serial.println(gps.hdop.hdop());
+Serial.print("GPS fix: ");
+Serial.print(gps.location.isValid() ? "VALID" : "INVALID");
+if (gps.location.isValid()&& gps.satellites.value() > 3) {
+  Serial.print(", Lat: ");
+  Serial.print(gps.location.lat(), 6);
+  Serial.print(", Lon: ");
+  Serial.println(gps.location.lng(), 6);
+  lastValidGPS = millis();
+  lastGPSActivity = millis();
+}
+
+// Send GPS data if:
+// - Location is valid AND
+// - (Emergency is active OR it's been more than X seconds since last send)
+//unsigned long currentMillis = millis();
+unsigned long gpsInterval = emergencyEventInProgress ? 500 : 1000;  // Send every 0,5s in emergency, 1s normally
+
+if (gps.location.isValid()|| gps.charsProcessed() > 0) {
+    if (currentMillis - lastGPSTime > gpsInterval) {
+      sendGPSData();
+      lastLat = gps.location.lat();
+      lastLon = gps.location.lng();
+      lastGPSTime = currentMillis;
+      lastGPSUpdateTime = currentMillis;
+      lastGPSActivity = currentMillis;
+      Serial.println("GPS sent due to interval trigger.");
+    }
+  } else if (millis() - lastValidGPS > 30000) {
+    Serial.println(" WARNING: No valid GPS data for 30 seconds!");
+  }else {
+    Serial.println("GPS in standby mode - skipping GPS processing");
+  }
+  
+  if(accelAvailable){
+      mpu6050.update();
+      float ax = mpu6050.getAccX();
+      float ay = mpu6050.getAccY();
+      float az = mpu6050.getAccZ();
+      
+      // Calculate raw magnitude (with gravity)
+      float rawMagnitude = sqrt(ax*ax + ay*ay + az*az);
+      
+      // Apply calibration offset to compensate for sensor bias
+      float calibratedMagnitude = rawMagnitude - accelCalibrationOffset;
+      
+      // Subtract gravity component (approximately 1.0)
+      // This helps isolate user movement from constant gravity
+      float activityMagnitude = abs(calibratedMagnitude - 1.0);
+      
+      // Enhanced debug output
+      Serial.print("Raw: ");
+      Serial.print(rawMagnitude, 4);
+      Serial.print(", Calibrated: ");
+      Serial.print(calibratedMagnitude, 4);
+      Serial.print(", Activity: ");
+      Serial.print(activityMagnitude, 4);
+      Serial.print(", Threshold: ");
+      Serial.println(ACTIVITY_THRESHOLD_WALK, 4);
+      
+      // Add to buffer
+      accelBuffer[bufferIndex][0] = ax;
+      accelBuffer[bufferIndex][1] = ay;
+      accelBuffer[bufferIndex][2] = az;
+      bufferIndex = (bufferIndex + 1) % 10;
+      if (sampleCount < 10) sampleCount++;
+      
+      // Check for fall or impact
+      checkForFallOrImpact(rawMagnitude, ax, ay, az);
+      
+      if (!fallDetected && calibrated && sampleCount >= 5) {
+        detectActivity(activityMagnitude);
+      }
+      if (emergencyEventInProgress && (millis() - emergencyStartTime > EMERGENCY_TIMEOUT)) {
+        emergencyEventInProgress = false;
+        fallDetected = false;
+        currentActivity = "SLEEP";
+        Serial.println("Emergency mode ended");
+      }
+      static String lastStateSent = "";
+      if (millis() - lastActivityTime > 1000) {
+        if (fallDetected) {
+          sendEventData("FALL");
+          if (millis() - fallTimestamp > FALL_DETECTION_WINDOW) {
+            fallDetected = false;
+          }
+        } else {
+          if (currentActivity != lastStateSent) {
+              sendActivityState(currentActivity);
+              lastActivityTime = millis();  
+              lastStateSent = currentActivity;
+            }
+          }
+          //sendActivityState(currentActivity);
+          unsigned long accelSendInterval = 5000;
+          if (currentActivity == "SLEEP") {
+            accelSendInterval = 15000;
+          } else if (currentActivity == "RUN" || emergencyEventInProgress) {
+            accelSendInterval = 2000;
+          }
+
+          if (millis() - lastAccelRawTime > accelSendInterval && !emergencyEventInProgress) {
+            sendAccelData();
+            lastAccelRawTime = millis();
+          }
+        }
+
+        //lastActivityTime = millis();
+      }
+       if (accelAvailable && currentActivity == "SLEEP" && !emergencyEventInProgress) {
+        if (millis() - lastActivityTime > SLEEP_TRIGGER_DURATION) {
+          Serial.println("Inactivity. Deep sleep 30 seconds...");
+          
+          setGPSStandby();
+          //mpu6050.setSleepEnabled(true);  
+          delay(100);
+
+          esp_sleep_enable_timer_wakeup(DEEP_SLEEP_DURATION_SEC * 1000000ULL);
+
+          Serial.flush();
+          pinMode(2, OUTPUT);
+          digitalWrite(2, LOW);
+          esp_deep_sleep_start();
+          Serial.println(">>> SHOULD NOT SEE THIS IF DEEP SLEEP IS ACTIVE <<<");
+
+        }
+      }
+
+    delay(emergencyEventInProgress ? 50 : 200);
+  
 }
