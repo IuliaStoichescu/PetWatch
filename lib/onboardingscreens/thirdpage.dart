@@ -21,7 +21,7 @@ class ThirdPage extends StatelessWidget {
         Align(
             alignment: Alignment.center, // Moves the dog image to the right
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 200), // Adjust position
+              padding: const EdgeInsets.only(bottom: 200), 
               child: SizedBox(
                 width: 400, // Increased width
                 height: 400, // Increased height
