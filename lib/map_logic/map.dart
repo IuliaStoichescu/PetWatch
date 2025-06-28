@@ -107,7 +107,7 @@ class _MapPageState extends State<MapPage> {
 
   String? lastNotifiedState;
   DateTime? lastNotificationTime;
-  Duration stateRepeatInterval = Duration(minutes: 10); // adjust as needed
+  Duration stateRepeatInterval = Duration(minutes: 10); 
 
   Map<String, dynamic>? currentWeather;
   DateTime? lastWeatherFetch;
@@ -159,7 +159,7 @@ Future<void> _setMapStyle() async {
     decideConnectionStrategy();
     geofenceManager.loadGeofence(widget.petName);
     _loadStoredData();
-    startOutTimer(); // Start timer if outStartTime is already set
+    startOutTimer(); // Starting timer if outStartTime is already set
   }
 
   @override
@@ -292,7 +292,7 @@ Future<void> _setMapStyle() async {
 
     // Check if we have a valid session in progress
     bool hasValidSession = sessionData['outStartTime'] != null;
-    // Only add marker if coordinates are valid (not 0,0)
+    // Only add marker if coordinates are valid 
     if (lastMarkerPos != null &&
         lastMarkerPos.latitude != 0.0 &&
         lastMarkerPos.longitude != 0.0 &&
@@ -644,7 +644,7 @@ Future<void> _setMapStyle() async {
         return;
       }
 
-      // If detailed didn't match, try simple format (just state and time)
+      // If detailed didn't match, trying simple format (just state and time)
       RegExp simpleRegex = RegExp(
         r'(\w+),TIME\s*:\s*([0-9:]+)',
         caseSensitive: false,
@@ -778,7 +778,7 @@ Future<void> _setMapStyle() async {
     final polyline = Polyline(
       polylineId: polylineId,
       color: const ui.Color.fromARGB(
-          255, 67, 166, 237), // You can change color or add gradient logic
+          255, 67, 166, 237), 
       width: 5,
       points: petPath,
       patterns: [PatternItem.dash(20), PatternItem.gap(10)], // dashed look
@@ -828,7 +828,7 @@ void _handleFollowModeCamera(LatLng newLocation) async {
   if (lastFollowedLocation == null || movedDistance > followThreshold) {
     lastFollowedLocation = newLocation;
 
-    final mapCtrl = await controller.future; // <- wait for it to be ready
+    final mapCtrl = await controller.future; //  wait for it to be ready
 
     mapCtrl.animateCamera(CameraUpdate.newCameraPosition(
       CameraPosition(
@@ -839,9 +839,9 @@ void _handleFollowModeCamera(LatLng newLocation) async {
       ),
     ));
 
-    print("📍 Camera following pet. Distance moved: $movedDistance m");
+    print(" Camera following pet. Distance moved: $movedDistance m");
   } else {
-    print("✅ No camera update. Pet only moved $movedDistance m");
+    print("No camera update. Pet only moved $movedDistance m");
   }
 }
 
@@ -870,7 +870,7 @@ Future<void> _parseGPSData(String payload) async {
         if (!isPetHome && outStartTime == null) {
           outStartTime = DateTime.now();
           startOutTimer(); // Start timer for UI updates
-          print("🏃 Pet already away from home area. Session started.");
+          print(" Pet already away from home area. Session started.");
         }
       }
 
@@ -903,7 +903,7 @@ Future<void> _parseGPSData(String payload) async {
           if (isPetHome) {
             double distanceFromHome = _distanceBetween(newLocation, widget.initialLocation);
 
-            if (distanceFromHome > 20) { // customize threshold if needed
+            if (distanceFromHome > 20) { 
               outStartTime = DateTime.now();
               isPetHome = false;
               startOutTimer(); // Start timer for UI updates
@@ -1255,13 +1255,9 @@ Widget _signalRow(Color color, String label) {
   }
 
   Future<void> _addHomeMarker(LatLng location) async {
-    // Option 1: Use a default marker with a different color
-    // BitmapDescriptor markerIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
-
-    // Option 2: Create a fully custom home icon
     BitmapDescriptor markerIcon = await BitmapDescriptor.asset(
       ImageConfiguration(size: Size(48, 48)),
-      'assets/home_green.png', // Add this image to your assets
+      'assets/home_green.png', 
     );
 
     final homeMarker = Marker(
@@ -1288,7 +1284,7 @@ Widget _signalRow(Color color, String label) {
       onTap: () {
         setState(() {
           selectedMarkerId =
-              id; // Store the marker ID for info window visibility
+              id; // Storing the marker ID for info window visibility
           selectedMarkerPosition = location;
           selectedPetImage = imageUrl;
         });
@@ -1296,7 +1292,7 @@ Widget _signalRow(Color color, String label) {
     );
     setState(() {
       _markers[id] = marker;
-    }); // Refresh UI to update the marker
+    }); // Refreshing UI to update the marker
   }
 
   void _showRadiusSlider() {
@@ -1400,7 +1396,7 @@ Widget _signalRow(Color color, String label) {
           Animarker(
             shouldAnimateCamera: false,
             mapId: controller.future.then<int>(
-                (value) => value.mapId), // assign this in onMapCreated
+                (value) => value.mapId), 
             curve: Curves.easeInOut,
             duration: Duration(milliseconds: 800),
             markers: Set<Marker>.of({..._markers,..._markersEvent}.values),
