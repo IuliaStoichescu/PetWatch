@@ -61,7 +61,7 @@ class _SessionAnalyticsPageState extends State<SessionAnalyticsPage> {
   final homeLng = homeDoc.data()?['lng'];
 
   if (homeLat == null || homeLng == null) {
-    print("⚠️ Home location is missing");
+    print(" Home location is missing");
     return;
   }
 
@@ -215,7 +215,7 @@ final encouragementMessages = [
                     text: l10n.sessionNumberXAxis, // Label for X-axis
                     textStyle: TextStyle(color: Colors.white, fontSize: 14),
                   ),
-                  labelStyle: TextStyle(color: Colors.white), // <-- white x-axis labels
+                  labelStyle: TextStyle(color: Colors.white), // white x-axis labels
                 ),
                 primaryYAxis: NumericAxis(
                   title: AxisTitle(
@@ -223,7 +223,7 @@ final encouragementMessages = [
                     textStyle: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                   axisLine: AxisLine(color: Colors.white),
-                  labelStyle: TextStyle(color: Colors.white), // <-- white y-axis labels
+                  labelStyle: TextStyle(color: Colors.white), //white y-axis labels
                 ),
                   series: <CartesianSeries<BarData, String>>[
                     ColumnSeries<BarData, String>(
