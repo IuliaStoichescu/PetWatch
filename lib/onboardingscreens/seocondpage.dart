@@ -21,7 +21,7 @@ class SecondPage extends StatelessWidget {
         Align(
             alignment: Alignment.center, // Moves the dog image to the right
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 100), // Adjust position
+              padding: const EdgeInsets.only(bottom: 100), 
               child: SizedBox(
                 width: 300, // Increased width
                 height: 300, // Increased height
