@@ -21,7 +21,7 @@ class FirstPage extends StatelessWidget {
         Align(
             alignment: Alignment.topRight, // Moves the dog image to the right
             child: Padding(
-              padding: const EdgeInsets.only(left: 100), // Adjust position
+              padding: const EdgeInsets.only(left: 100), 
               child: SizedBox(
                 width: 800, // Increased width
                 height: 800, // Increased height
