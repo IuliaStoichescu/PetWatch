@@ -16,7 +16,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
   final apiKeyWeb = dotenv.env['API_KEY_WEB'];
-  WidgetsFlutterBinding.ensureInitialized(); // ✅ Ensure async code runs before UI
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure async code runs before UI
   NotificationService().initNotification();
   if (kIsWeb) {
     await Firebase.initializeApp(
@@ -36,7 +36,7 @@ Future<void> main() async {
   }
 
   final prefs = await SharedPreferences.getInstance();
-  final bool seenOnboarding = prefs.getBool("seenOnboarding") ?? false; // ✅ Default to false
+  final bool seenOnboarding = prefs.getBool("seenOnboarding") ?? false; // Default to false
 
   runApp(ChangeNotifierProvider(create: (context)=> StorageService(),
   child:LocaleWrapper(seenOnboarding: seenOnboarding) ,));//
