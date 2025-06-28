@@ -6,25 +6,20 @@
 #include <PubSubClient.h>
 #include <AsyncTCP.h>
 
-// LoRa Pins
 #define SS 5
 #define RST 14
 #define DIO0 2
 
-// Message type identifiers
 #define MSG_TYPE_GPS "GPS"
 #define MSG_TYPE_ACCEL "ACC"
 #define MSG_TYPE_EVENT "EVT"
 
-// WiFi Credentials (Option 1 - Home WiFi for HiveMQ)
 const char* WIFI_SSID = "wifinname";
 const char* WIFI_PASSWORD = "wifipassword";
 
-// WiFi AP Mode (Option 2 - When No Internet)
 const char* AP_SSID = "ESP32_Pet_Tracker";
 const char* AP_PASSWORD = "9876543210";
 
-// MQTT Cloud Settings (Option 1 - HiveMQ Cloud)
 const char* MQTT_BROKER_CLOUD = "4e8b407740ce42b18fba5f234af6b314.s1.eu.hivemq.cloud";
 const int MQTT_PORT_CLOUD = 8883;
 const char* MQTT_TOPIC_GPS = "gps/tracker";
