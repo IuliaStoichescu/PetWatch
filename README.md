@@ -16,4 +16,4 @@ ESP32-WROOM, MPU6050, NEO-6M GPS, LoRa RFM96
 Arduino IDE, Flutter, Dart, Firebase, MQTT, HiveMQ
 Google Maps API, SharedPreferences, Visual Studio Code
 
-This solution aims to offer a flexible, affordable, and reliable tool for pet owners who seek increased safety and awareness of their animals’ whereabouts and behavior.
+This solution aims to offer a flexible, affordable, and reliable tool for pet owners who seek increased safety and awareness of their animals whereabouts and behavior.
