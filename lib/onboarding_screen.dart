@@ -6,7 +6,7 @@ import 'package:pet_watch/onboardingscreens/thirdpage.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  final VoidCallback? onDone; // ✅ Add this line
+  final VoidCallback? onDone; 
 
   const OnboardingScreen({super.key, this.onDone});
 
@@ -84,7 +84,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ? GestureDetector(
                         onTap: () {
                           if (widget.onDone != null) {
-                            widget.onDone!(); // ✅ Call the callback when onboarding is done
+                            widget.onDone!(); // Call the callback when onboarding is done
                           } else {
                             Navigator.pushReplacement(
                               context,
@@ -98,7 +98,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           child: TextButton(
                             onPressed: () {
                               if (widget.onDone != null) {
-                                widget.onDone!(); // ✅ Call the callback
+                                widget.onDone!(); 
                               } else {
                                 Navigator.pushReplacement(
                                   context,
