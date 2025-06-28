@@ -30,7 +30,6 @@ class _SetHomeLocationPageState extends State<SetHomeLocationPage> {
   List<dynamic> _searchResults = [];
   bool _isSearching = false;
 
-  // Get API key from environment
   String get apiKey => dotenv.env['API_PLACES'] ?? '';
 
   Future<void> saveHomeLocation(String userId, String petId, LatLng location) async {
@@ -182,7 +181,7 @@ class _SetHomeLocationPageState extends State<SetHomeLocationPage> {
           GoogleMap(
             myLocationButtonEnabled: false,
             initialCameraPosition: CameraPosition(
-              target: LatLng(45.7489, 21.2087), // Default to somewhere like Timișoara
+              target: LatLng(45.7489, 21.2087), // Default location
               zoom: 14,
             ),
             onMapCreated: (controller) => _mapController = controller,
