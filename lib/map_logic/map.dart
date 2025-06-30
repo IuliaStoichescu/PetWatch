@@ -859,6 +859,10 @@ Future<void> _parseGPSData(String payload) async {
     if (match != null) {
       double lat = double.parse(match.group(1)!);
       double lon = double.parse(match.group(2)!);
+      if(lat == 0.0 && lon == 0.0){
+        print("Ignored, gps is not valid");
+        return;
+      }
       LatLng newLocation = LatLng(lat, lon);
 
       // First location received - initialize tracker state
