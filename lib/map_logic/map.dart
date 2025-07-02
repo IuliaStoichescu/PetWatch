@@ -481,7 +481,8 @@ Future<void> _setMapStyle() async {
       client!.subscribe("event/tracker", MqttQos.atMostOnce);
       client!.subscribe("signal/tracker", MqttQos.atMostOnce);
       _listenToMessages(); // Start listening to messages
-      setState(() {}); // Update UI instantly after connecting
+      setState(() {canConnect = true;
+  useCloud = true;}); // Update UI instantly after connecting
       print("Connected to MQTT: $broker");
     } catch (e) {
       print("Did not connect to MQTT: $e");
@@ -509,7 +510,7 @@ Future<void> _setMapStyle() async {
     } else if (!phoneOnline && !espOnline) {
       // Caz fallback: local WebSocket, cand si telefonul si esp nu au internet
       useCloud = false;
-      canConnect = true;
+      canConnect = false;
       _connectToWebSocket();
     } else if (phoneOnline && !espOnline) {
       // Telefonul are net, ESP32 nu => conectam telefonul la propriul wifi a lui esp
@@ -520,7 +521,8 @@ Future<void> _setMapStyle() async {
           "⚠️ ESP32 nu e conectat la net dar telefonul e ");
     } else if (!phoneOnline && espOnline) {
       // Telefonul nu e online => poate fi conectat la ESP AP
-      canConnect = false;
+      canConnect = true;
+      useCloud = false;
       print(
           "⚠️ ESP are internet, dar telefonul nu este conectat la vreo rețea.");
     }
@@ -681,7 +683,9 @@ Future<void> _setMapStyle() async {
           }
 
           if (stateRepeatCount >= 3 && currentState != lastNotifiedState) {
-            CustomNotification notif = buildNotification(
+            if(timeAcc != "02:00:00")
+            {
+               CustomNotification notif = buildNotification(
               source: "accel",
               value: currentState,
               time: timeAcc,
@@ -695,6 +699,9 @@ Future<void> _setMapStyle() async {
             await storageService.saveNotifications(
                 widget.petId, notifications);
             notificationService.showCustomNotification(notif);
+            } else {
+              print("Skipped notification for time 2:00:00");
+            }
           }
         }
         return;
@@ -728,7 +735,9 @@ Future<void> _setMapStyle() async {
         });
 
         if (["FALL", "IMPACT"].contains(eventType.toUpperCase())) {
-          CustomNotification notif = buildNotification(
+          if (eventTime != "2:00:00")
+          {
+            CustomNotification notif = buildNotification(
               source: "event", value: eventType, time: eventTime);
           setState(() {
             notifications.add(notif);
@@ -750,8 +759,10 @@ Future<void> _setMapStyle() async {
             type: eventType,
           );
           await storageService.saveEventMarkers(widget.petId, _markersEvent);
+          } else {
+            print("Skipped notification for time 2:00:00");
+          }
         }
-
         print("Parsed Event and showed notification.");
       }
     } catch (e) {
@@ -1028,6 +1039,7 @@ Future<void> _parseGPSData(String payload) async {
         color: Colors.transparent,
         child: StatefulBuilder(
           builder: (context, setPopupState) {
+            print("UI shows: canConnect: $canConnect, useCloud: $useCloud");
             return Container(
               padding: EdgeInsets.all(10),
               width: 250,
@@ -1041,6 +1053,7 @@ Future<void> _parseGPSData(String payload) async {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
+               
                 children: [
                   Row(
                     children: [
@@ -1277,8 +1290,13 @@ Widget _signalRow(Color color, String label) {
   }
 
   void addMarker(String id, LatLng location, String imageUrl) async {
-    BitmapDescriptor markerIcon =
-        await MapFunctions.createCustomMarker(imageUrl);
+    BitmapDescriptor markerIcon;
+
+  if (!canConnect) {
+    markerIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+  } else {
+    markerIcon = await MapFunctions.createCustomMarker(imageUrl);
+  }
 
     var marker = Marker(
       markerId: MarkerId(id),
